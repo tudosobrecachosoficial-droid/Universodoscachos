@@ -1,0 +1,7 @@
+export { productsService } from './products.service'
+export { postsService } from './posts.service'
+export { curlTypesService } from './curlTypes.service'
+export { glossaryService } from './glossary.service'
+export { quizService } from './quiz.service'
+export { routinesService } from './routines.service'
+export { careService } from './care.service'
