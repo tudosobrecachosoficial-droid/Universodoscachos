@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 const LINKS = [
   { label: "Início", to: "/" },
@@ -19,6 +20,8 @@ type Props = {
 
 export default function SiteNav({ solid = false }: Props) {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     if (!open) return;
@@ -27,11 +30,25 @@ export default function SiteNav({ solid = false }: Props) {
     return () => window.removeEventListener("resize", close);
   }, [open]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Fecha o menu mobile ao mudar de rota
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
   return (
     <>
-      <header className={solid ? "nav is-solid" : "nav"}>
+      <header className={`nav ${scrolled ? "is-solid" : ""}`}>
         <Link className="nav-logo" to="/" onClick={() => setOpen(false)}>
-          Universo <em>dos</em> Cachos
+          <img src={logo} alt="Unicachos - Universo dos Cachos" />
         </Link>
 
         <nav className="nav-links" aria-label="Navegação principal">
@@ -58,6 +75,13 @@ export default function SiteNav({ solid = false }: Props) {
 
       {open ? (
         <nav className="nav-mobile" aria-label="Menu">
+          <button
+            className="nav-mobile-close"
+            onClick={() => setOpen(false)}
+            aria-label="Fechar menu"
+          >
+            <i className="ri-close-line" aria-hidden="true" />
+          </button>
           {LINKS.map((link) => (
             <Link key={link.label} to={link.to} onClick={() => setOpen(false)}>
               {link.label}

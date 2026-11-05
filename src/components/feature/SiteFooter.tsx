@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 export default function SiteFooter() {
   return (
@@ -6,7 +7,7 @@ export default function SiteFooter() {
       <div className="footer-top">
         <div>
           <p className="footer-mark">
-            Universo <em>dos</em> Cachos
+            <img src={logo} alt="Unicachos - Universo dos Cachos" />
           </p>
           <p className="footer-slogan">
             Seu universo de cuidados, descobertas e amor pelos cachos. Para cabelos ondulados,
