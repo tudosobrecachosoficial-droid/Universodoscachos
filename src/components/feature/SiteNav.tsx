@@ -19,6 +19,8 @@ type Props = {
 };
 
 export default function SiteNav({ solid = false }: Props) {
+  // solid prop é usado para futuras customizações
+  void solid;
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();

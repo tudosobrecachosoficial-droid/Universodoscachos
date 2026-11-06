@@ -96,7 +96,7 @@ export function useChapterScrub(ref: RefObject<HTMLElement | null>) {
         rolling = true;
         v.loop = true;
         v.play().catch(() => {
-          chapter.classList.add("is-static");
+          chapter?.classList.add("is-static");
           detach();
         });
       };
