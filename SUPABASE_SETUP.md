@@ -29,6 +29,13 @@ Este documento descreve como configurar o Supabase para o projeto Cachos.
    VITE_SUPABASE_URL=https://seu-projeto.supabase.co
    VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui
    ```
+   Para importar os dados iniciais, adicione também a chave `service_role` somente ao
+   ambiente local do script:
+   ```env
+   SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key
+   ```
+   Nunca use `VITE_` nessa chave: ela não pode ser incluída no código do navegador nem
+   compartilhada em repositórios.
 
 ## 3. Criar Tabelas no Banco de Dados
 
@@ -36,20 +43,17 @@ Este documento descreve como configurar o Supabase para o projeto Cachos.
 
 1. No dashboard do Supabase, vá em **SQL Editor**
 2. Clique em "New query"
-3. Copie todo o conteúdo do arquivo `supabase-schema.sql`
+3. Copie todo o conteúdo do arquivo `supabase-schema-fixed.sql`
 4. Cole no editor e clique em "Run"
 5. Aguarde a execução do script
 
-### Opção B: Via CLI (Avançado)
+O arquivo `supabase-schema.sql` contém um modelo antigo e incompatível com a aplicação.
+Use `supabase-schema-fixed.sql`, que cria/atualiza as tabelas e mantém as políticas de leitura.
 
-Se você tem o Supabase CLI instalado:
-```bash
-supabase db push
-```
+## 4. Importar conteúdo inicial (opcional)
 
-## 4. Migrar Dados dos Mocks para o Supabase
-
-Após configurar as tabelas, você pode migrar os dados dos arquivos mocks:
+Se o banco ainda estiver vazio e você quiser inserir o conteúdo de demonstração dos arquivos
+`src/mocks/`, execute:
 
 1. Certifique-se de que o arquivo `.env` está configurado
 2. Execute o script de migração:
@@ -57,27 +61,15 @@ Após configurar as tabelas, você pode migrar os dados dos arquivos mocks:
    npx tsx scripts/migrate-mocks-to-supabase.ts
    ```
 
-Isso irá migrar todos os dados dos arquivos em `src/mocks/` para o Supabase.
+O script insere apenas registros ausentes por slug; registros já existentes no banco não são
+sobrescritos. Se uma migração antiga já criou registros incompletos a partir dos mocks, você pode
+definir `SUPABASE_MIGRATION_OVERWRITE=true` para preenchê-los — isso substitui os registros com os
+mesmos slugs pelo conteúdo dos mocks. Não use essa opção em conteúdo final que precise preservar.
 
 ## 5. Atualizar o Código para Usar o Supabase
 
-Os serviços já estão criados em `src/services/`. Para usar o Supabase em vez dos mocks:
-
-### Exemplo em uma página:
-
-**Antes (usando mocks):**
-```typescript
-import { PRODUCTS } from '@/mocks/products'
-
-const products = PRODUCTS
-```
-
-**Depois (usando Supabase):**
-```typescript
-import { productsService } from '@/services'
-
-const products = await productsService.getAll()
-```
+O catálogo, as categorias, o blog, a página inicial e as páginas de detalhe leem os
+registros publicados diretamente do Supabase. Os serviços ficam em `src/services/`.
 
 ## 6. Estrutura das Tabelas
 
@@ -108,8 +100,8 @@ const products = await productsService.getAll()
 ## 7. Segurança (RLS)
 
 O schema já inclui políticas de Row Level Security (RLS) que:
-- Permitem leitura pública para todas as tabelas
-- Não permitem escrita pública (você precisará configurar autenticação para escrita)
+- Permitem leitura pública do conteúdo; posts não publicados ficam restritos
+- Não permitem escrita pública; a chave `service_role` fica reservada aos scripts locais
 
 ## 8. Storage (Opcional)
 
@@ -122,12 +114,12 @@ Para armazenar imagens, você pode configurar o Storage do Supabase:
 
 ## Solução de Problemas
 
-### Erro: "Supabase URL e Anon Key são necessários"
+### Erro: "Supabase não configurado"
 - Verifique se o arquivo `.env` existe e está configurado corretamente
 - Reinicie o servidor de desenvolvimento após criar o arquivo `.env`
 
 ### Erro: "relation does not exist"
-- Execute o script `supabase-schema.sql` no SQL Editor
+- Execute o script `supabase-schema-fixed.sql` no SQL Editor
 - Verifique se todas as tabelas foram criadas no dashboard
 
 ### Erro de permissão

@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
-import { PRODUCTS } from "@/mocks/products";
-import { POSTS } from "@/mocks/posts";
+import { productsService, postsService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
+import ProductCategoryPage from "@/pages/produtos/categoria/page";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useStructuredData } from "@/hooks/useStructuredData";
 import { buildProductNode } from "@/utils/offers";
@@ -17,27 +19,43 @@ const formatDate = (iso: string) =>
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
-  const product = PRODUCTS.find((item) => item.slug === slug);
+  const loadProduct = useCallback(() => productsService.getBySlug(slug ?? ""), [slug]);
+  const loadPosts = useCallback(() => postsService.getAll(), []);
+  const loadCategory = useCallback(() => productsService.getCategoryBySlug(slug ?? ""), [slug]);
+  const productQuery = useSupabaseData(loadProduct);
+  const postsQuery = useSupabaseData(loadPosts);
+  const categoryQuery = useSupabaseData(loadCategory);
+  const category = categoryQuery.data;
+  const product = productQuery.data;
   const [active, setActive] = useState(0);
 
   const images = useMemo(
-    () => (product ? [product.image, ...product.gallery] : []),
+    () => (product ? [product.image, ...product.gallery].filter(Boolean) : []),
     [product],
   );
 
   const relatedPosts = useMemo(
-    () => (product ? POSTS.filter((post) => post.productSlugs.includes(product.slug)).slice(0, 3) : []),
-    [product],
+    () =>
+      product
+        ? (postsQuery.data ?? [])
+            .filter((post) => (post.productSlugs ?? []).includes(product.slug))
+            .slice(0, 3)
+        : [],
+    [product, postsQuery.data],
   );
 
   usePageMeta({
     title: product
       ? `${product.name} — ${product.brand} | Universo dos Cachos`
+      : category
+        ? `${category.label} para cabelos naturais | Universo dos Cachos`
       : "Produto não encontrado | Universo dos Cachos",
     description: product
       ? product.summary
+      : category
+        ? category.intro || `Seleção de ${category.label.toLowerCase()} recomendados para cabelos ondulados, cacheados e crespos.`
       : "Este produto não está mais no catálogo do Universo dos Cachos.",
-    path: product ? `/produtos/${product.slug}` : "/produtos",
+    path: product ? `/produtos/${product.slug}` : category ? `/produtos/${slug}` : "/produtos",
   });
 
   const hasPrice = Boolean(product?.promoPrice || product?.price);
@@ -74,12 +92,25 @@ export default function ProductDetailPage() {
 
   useStructuredData("product-detail", structuredData);
 
+  if (!product && category && slug) {
+    return <ProductCategoryPage slug={slug} />;
+  }
+
   if (!product) {
     return (
       <div className="page">
         <SiteNav solid />
         <main className="wrap" style={{ paddingTop: 160, paddingBottom: 120 }}>
-          <div className="empty">
+          {productQuery.loading || productQuery.error || categoryQuery.loading || categoryQuery.error ? (
+            <SupabaseState
+              loading={productQuery.loading || categoryQuery.loading}
+              error={productQuery.error || categoryQuery.error}
+              onRetry={() => {
+                productQuery.reload();
+                categoryQuery.reload();
+              }}
+            />
+          ) : <div className="empty">
             <i className="ri-price-tag-3-line" aria-hidden="true" />
             <h3>Produto não encontrado</h3>
             <p>O link pode ter mudado ou o produto saiu da prateleira. Veja o catálogo completo.</p>
@@ -87,7 +118,7 @@ export default function ProductDetailPage() {
               Voltar ao catálogo
               <i className="ri-arrow-right-line" aria-hidden="true" />
             </Link>
-          </div>
+          </div>}
         </main>
         <SiteFooter />
       </div>
@@ -113,7 +144,7 @@ export default function ProductDetailPage() {
             <div className="pdetail-media">
               <div className="pdetail-hero">
                 <img
-                  src={images[active]}
+                  src={images[active] ?? product.image}
                   alt={`${product.name} da marca ${product.brand}`}
                   width={900}
                   height={900}
@@ -181,7 +212,7 @@ export default function ProductDetailPage() {
                 </div>
                 <div>
                   <dt>Curvaturas</dt>
-                  <dd>{product.curls.join(" · ")}</dd>
+                  <dd>{(product.curls ?? []).join(" · ")}</dd>
                 </div>
                 <div>
                   <dt>Necessidade</dt>

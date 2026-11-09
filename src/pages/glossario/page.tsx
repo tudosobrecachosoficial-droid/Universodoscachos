@@ -1,16 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import NewsletterBlock from "@/components/feature/NewsletterBlock";
-import { GLOSSARY_TERMS } from "@/mocks/glossary";
-import { POSTS } from "@/mocks/posts";
-import { CURL_TYPES } from "@/mocks/curlTypes";
+import { glossaryService, postsService, curlTypesService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
-const LETTERS = Array.from(new Set(GLOSSARY_TERMS.map((item) => item.letter)));
-
 export default function GlossaryPage() {
+  const loadTerms = useCallback(() => glossaryService.getAll(), []);
+  const loadPosts = useCallback(() => postsService.getAll(), []);
+  const loadCurlTypes = useCallback(() => curlTypesService.getAll(), []);
+  const termsQuery = useSupabaseData(loadTerms);
+  const postsQuery = useSupabaseData(loadPosts);
+  const curlTypesQuery = useSupabaseData(loadCurlTypes);
+  const terms = termsQuery.data ?? [];
+  const posts = postsQuery.data ?? [];
+  const curlTypes = curlTypesQuery.data ?? [];
+  const letters = Array.from(new Set(terms.map((item) => item.letter).filter(Boolean))).sort();
+
   usePageMeta({
     title: "Glossário de termos capilares | Universo dos Cachos",
     description:
@@ -33,7 +42,7 @@ export default function GlossaryPage() {
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
-    return GLOSSARY_TERMS.filter((item) => {
+    return terms.filter((item) => {
       const matchLetter = letter === "todas" || item.letter === letter;
       const matchTerm =
         !term ||
@@ -42,7 +51,7 @@ export default function GlossaryPage() {
         item.long.toLowerCase().includes(term);
       return matchLetter && matchTerm;
     });
-  }, [letter, query]);
+  }, [letter, query, terms]);
 
   const hasFilters = letter !== "todas" || query.trim() !== "";
 
@@ -76,12 +85,21 @@ export default function GlossaryPage() {
                   solta no caminho.
                 </p>
               </div>
-              <p className="head-count">{GLOSSARY_TERMS.length} termos</p>
+              <p className="head-count">{terms.length} termos</p>
             </div>
           </div>
         </header>
 
         <div className="wrap">
+          <SupabaseState
+            loading={termsQuery.loading || postsQuery.loading || curlTypesQuery.loading}
+            error={termsQuery.error || postsQuery.error || curlTypesQuery.error}
+            onRetry={() => {
+              termsQuery.reload();
+              postsQuery.reload();
+              curlTypesQuery.reload();
+            }}
+          />
           <section className="gloss-toolbar" aria-label="Navegar pelo glossário">
             <label className="search-box gloss-search">
               <i className="ri-search-line" aria-hidden="true" />
@@ -103,7 +121,7 @@ export default function GlossaryPage() {
               >
                 Todos
               </button>
-              {LETTERS.map((item) => (
+              {letters.map((item) => (
                 <button
                   key={item}
                   type="button"
@@ -123,7 +141,7 @@ export default function GlossaryPage() {
             ) : null}
           </section>
 
-          {filtered.length === 0 ? (
+          {!termsQuery.loading && !termsQuery.error && !postsQuery.loading && !postsQuery.error && !curlTypesQuery.loading && !curlTypesQuery.error && filtered.length === 0 ? (
             <div className="empty">
               <i className="ri-book-open-line" aria-hidden="true" />
               <h3>Nenhum termo com esses filtros</h3>
@@ -135,18 +153,18 @@ export default function GlossaryPage() {
                 Ver todos os termos
               </button>
             </div>
-          ) : (
+          ) : !termsQuery.loading && !termsQuery.error && !postsQuery.loading && !postsQuery.error && !curlTypesQuery.loading && !curlTypesQuery.error ? (
             <div className="gloss-list">
               {filtered.map((item) => {
-                const relatedPosts = item.postSlugs
-                  .map((slug) => POSTS.find((post) => post.slug === slug))
-                  .filter((post): post is (typeof POSTS)[number] => Boolean(post));
-                const codes = item.codes
-                  .map((code) => CURL_TYPES.find((type) => type.code === code))
-                  .filter((type): type is (typeof CURL_TYPES)[number] => Boolean(type));
+                const relatedPosts = (item.postSlugs ?? [])
+                .map((slug) => posts.find((post) => post.slug === slug))
+                .filter((post): post is (typeof posts)[number] => Boolean(post));
+                const codes = (item.codes ?? [])
+                .map((code) => curlTypes.find((type) => type.code === code))
+                .filter((type): type is (typeof curlTypes)[number] => Boolean(type));
 
                 return (
-                  <article className="gloss-term" id={item.slug} key={item.slug}>
+                  <article className="gloss-term" id={item.slug || item.id} key={item.id}>
                     <div className="gloss-term-head">
                       <span className="gloss-letter-mark">{item.letter}</span>
                       <h2>{item.term}</h2>
@@ -191,7 +209,7 @@ export default function GlossaryPage() {
                 );
               })}
             </div>
-          )}
+          ) : null}
 
           <div className="gloss-footer">
             <div>

@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
-import { CURL_FINISH_HINTS, CURL_TYPES } from "@/mocks/curlTypes";
+import type { CurlType } from "@/lib/supabase/types";
 
 /**
  * One-screen comparison of the nine curvatures. Each row links to the full
  * guide and to the catalogue filtered by that code.
  */
-export default function CurlCompareTable() {
+export default function CurlCompareTable({ types }: { types: CurlType[] }) {
   return (
     <section className="compare-block" aria-labelledby="comparar-curvaturas">
       <div className="wrap">
@@ -36,7 +36,7 @@ export default function CurlCompareTable() {
               </tr>
             </thead>
             <tbody>
-              {CURL_TYPES.map((type) => (
+              {types.map((type) => (
                 <tr key={type.slug}>
                   <td>
                     <Link className="compare-code" to={`/tipos-de-cachos/${type.slug}`}>
@@ -50,7 +50,7 @@ export default function CurlCompareTable() {
                   <td>{type.facts[0]?.value}</td>
                   <td>{type.facts[1]?.value}</td>
                   <td>{type.facts[2]?.value}</td>
-                  <td>{CURL_FINISH_HINTS[type.code]}</td>
+                  <td>{type.finishing[0]?.text}</td>
                   <td>
                     <Link className="compare-link" to={`/produtos?tipo=${type.slug}`}>
                       Ver {type.code}

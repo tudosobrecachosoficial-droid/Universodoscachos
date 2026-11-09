@@ -1,15 +1,29 @@
+import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import NewsletterBlock from "@/components/feature/NewsletterBlock";
-import { CARE_MISTAKES, CARE_PILLARS, CARE_PRODUCT_SLUGS, CARE_SIGNS } from "@/mocks/care";
-import { CURL_TYPES } from "@/mocks/curlTypes";
-import { PRODUCTS } from "@/mocks/products";
-import { POSTS } from "@/mocks/posts";
+import { CARE_MISTAKES, CARE_PRODUCT_SLUGS, CARE_SIGNS } from "@/mocks/care";
+import { careService, curlTypesService, productsService, postsService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { formatShortDate } from "@/utils/date";
 
 export default function CarePage() {
+  const loadCare = useCallback(() => careService.getAll(), []);
+  const loadCurls = useCallback(() => curlTypesService.getAll(), []);
+  const loadProducts = useCallback(() => productsService.getAll(), []);
+  const loadPosts = useCallback(() => postsService.getAll(), []);
+  const careQuery = useSupabaseData(loadCare);
+  const curlQuery = useSupabaseData(loadCurls);
+  const productsQuery = useSupabaseData(loadProducts);
+  const postsQuery = useSupabaseData(loadPosts);
+  const carePillars = careQuery.data ?? [];
+  const curlTypes = curlQuery.data ?? [];
+  const allProducts = productsQuery.data ?? [];
+  const allPosts = postsQuery.data ?? [];
+
   usePageMeta({
     title: "Cuidados com cabelos cacheados e crespos | Universo dos Cachos",
     description:
@@ -18,18 +32,30 @@ export default function CarePage() {
   });
 
   const products = CARE_PRODUCT_SLUGS
-    .map((slug) => PRODUCTS.find((item) => item.slug === slug))
-    .filter((item): item is (typeof PRODUCTS)[number] => Boolean(item));
+    .map((slug) => allProducts.find((item) => item.slug === slug))
+    .filter((item): item is (typeof allProducts)[number] => Boolean(item));
 
-  const posts = POSTS
+  const posts = allPosts
     .filter((post) => post.categorySlug === "cuidados")
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
     .slice(0, 3);
 
   return (
     <div className="page">
       <SiteNav solid />
       <main>
+        <div className="wrap">
+          <SupabaseState
+            loading={careQuery.loading || curlQuery.loading || productsQuery.loading || postsQuery.loading}
+            error={careQuery.error || curlQuery.error || productsQuery.error || postsQuery.error}
+            onRetry={() => {
+              careQuery.reload();
+              curlQuery.reload();
+              productsQuery.reload();
+              postsQuery.reload();
+            }}
+          />
+        </div>
         <header className="page-head">
           <div className="wrap">
             <nav className="crumbs" aria-label="Você está aqui">
@@ -88,8 +114,8 @@ export default function CarePage() {
             </p>
 
             <div className="kids-grid">
-              {CARE_PILLARS.map((pillar) => (
-                <div className="kids-card" key={pillar.num}>
+              {carePillars.map((pillar) => (
+                <div className="kids-card" key={pillar.id}>
                   <span className="num">{pillar.num}</span>
                   <h3>{pillar.title}</h3>
                   <p>{pillar.text}</p>
@@ -173,7 +199,7 @@ export default function CarePage() {
             </p>
 
             <div className="curl-mini-grid">
-              {CURL_TYPES.map((type) => (
+              {curlTypes.map((type) => (
                 <Link className="curl-mini" key={type.slug} to={`/tipos-de-cachos/${type.slug}`}>
                   <span className="curl-mini-code">{type.code}</span>
                   <span className="curl-mini-name">{type.name}</span>

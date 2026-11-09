@@ -1,9 +1,9 @@
-import { supabase } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import type { GlossaryTerm } from '@/lib/supabase/types'
 
 export const glossaryService = {
   async getAll() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('glossary')
       .select('*')
       .order('term')
@@ -13,7 +13,7 @@ export const glossaryService = {
   },
 
   async getByCategory(category: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('glossary')
       .select('*')
       .eq('category', category)

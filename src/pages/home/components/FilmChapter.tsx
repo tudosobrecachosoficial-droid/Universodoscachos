@@ -22,7 +22,7 @@ export default function FilmChapter() {
           src={VIDEO_COVER}
           width={1920}
           height={1080}
-          fetchPriority="high"
+          {...{ fetchpriority: "high" }}
           decoding="async"
           alt="Close-up de uma mulher negra de cachos volumosos ao lado de uma janela, sol da manhã sobre o cabelo natural."
         />

@@ -1,178 +1,182 @@
-import { config } from 'dotenv'
-import { createClient } from '@supabase/supabase-js'
-import { PRODUCT_CATEGORIES, PRODUCTS } from '../src/mocks/products'
-import { CURL_FAMILIES } from '../src/mocks/curlTypes'
-import { POSTS } from '../src/mocks/posts'
-import { GLOSSARY_TERMS } from '../src/mocks/glossary'
-import { QUIZ_QUESTIONS } from '../src/mocks/quiz'
-import { ROUTINE_WEEK } from '../src/mocks/routines'
-import { CARE_PILLARS } from '../src/mocks/care'
+import { config } from "dotenv";
+import { createClient } from "@supabase/supabase-js";
+import { PRODUCT_CATEGORIES, PRODUCTS } from "../src/mocks/products";
+import { CURL_TYPES } from "../src/mocks/curlTypes";
+import { POSTS } from "../src/mocks/posts";
+import { GLOSSARY_TERMS } from "../src/mocks/glossary";
+import { QUIZ_QUESTIONS } from "../src/mocks/quiz";
+import { ROUTINE_WEEK } from "../src/mocks/routines";
+import { CARE_PILLARS } from "../src/mocks/care";
 
-// Carregar variáveis de ambiente
-config()
+config();
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL
-const supabaseServiceRoleKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  console.error('❌ Variáveis de ambiente não encontradas!')
-  process.exit(1)
+if (!supabaseUrl || !serviceRoleKey) {
+  throw new Error(
+    "Defina VITE_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no .env antes de executar a migração.",
+  );
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+const supabase = createClient(supabaseUrl, serviceRoleKey);
+const overwriteExisting = process.env.SUPABASE_MIGRATION_OVERWRITE === "true";
 
-// Função para migrar categorias de produtos
-async function migrateProductCategories() {
-  console.log('📦 Migrando categorias de produtos...')
-  for (const category of PRODUCT_CATEGORIES) {
-    const { error } = await supabase
-      .from('product_categories')
-      .upsert({
-        slug: category.slug,
-        label: category.label,
-        intro: category.intro,
-        image: category.image
-      }, { onConflict: 'slug' })
-
-    if (error) console.error('❌ Erro ao migrar categoria:', error)
-  }
-  console.log('✅ Categorias de produtos migradas!')
+async function upsertRows(
+  table: string,
+  rows: Record<string, unknown>[],
+  conflictColumn: string,
+) {
+  const { error } = await supabase
+    .from(table)
+    .upsert(rows, { onConflict: conflictColumn, ignoreDuplicates: !overwriteExisting });
+  if (error) throw new Error(`Falha ao migrar ${table}: ${error.message}`);
+  console.log(`✅ ${table}: ${rows.length} registros sincronizados`);
 }
 
-// Função para migrar produtos
-async function migrateProducts() {
-  console.log('📦 Migrando produtos...')
-  for (const product of PRODUCTS) {
-    const { error } = await supabase
-      .from('products')
-      .upsert({
-        slug: product.slug,
-        name: product.name,
-        featured: product.featured,
-        image: product.image
-      }, { onConflict: 'slug' })
-
-    if (error) console.error('❌ Erro ao migrar produto:', error)
-  }
-  console.log('✅ Produtos migrados!')
+if (overwriteExisting) {
+  console.warn("⚠️ SUPABASE_MIGRATION_OVERWRITE=true: existing rows with matching slugs will be replaced by mock content.");
 }
 
-// Função para migrar tipos de cachos
-async function migrateCurlTypes() {
-  console.log('📦 Migrando tipos de cachos...')
-  // Por enquanto, vamos pular esta migração pois a estrutura é complexa
-  console.log('⏭️ Tipos de cachos pulados (estrutura complexa)')
-}
-
-// Função para migrar posts
-async function migratePosts() {
-  console.log('📦 Migrando posts...')
-  for (const post of POSTS) {
-    const { error } = await supabase
-      .from('posts')
-      .upsert({
-        slug: post.slug,
-        title: post.title,
-        category: post.category,
-        author: post.author,
-        featured: post.featured,
-        excerpt: post.excerpt,
-        image: post.image,
-        published: true
-      }, { onConflict: 'slug' })
-
-    if (error) console.error('❌ Erro ao migrar post:', error)
-  }
-  console.log('✅ Posts migrados!')
-}
-
-// Função para migrar glossário
-async function migrateGlossary() {
-  console.log('📦 Migrando glossário...')
-  for (const term of GLOSSARY_TERMS) {
-    const { error } = await supabase
-      .from('glossary')
-      .upsert({
-        term: term.term,
-        definition: term.definition,
-        category: term.category
-      })
-
-    if (error) console.error('❌ Erro ao migrar termo:', error)
-  }
-  console.log('✅ Glossário migrado!')
-}
-
-// Função para migrar quiz
-async function migrateQuiz() {
-  console.log('📦 Migrando quiz...')
-  for (const question of QUIZ_QUESTIONS) {
-    const { error } = await supabase
-      .from('quiz_questions')
-      .upsert({
-        question: question.question,
-        options: question.options,
-        correct: question.correct,
-        explanation: question.explanation
-      })
-
-    if (error) console.error('❌ Erro ao migrar pergunta:', error)
-  }
-  console.log('✅ Quiz migrado!')
-}
-
-// Função para migrar rotinas
-async function migrateRoutines() {
-  console.log('📦 Migrando rotinas...')
-  for (const routine of ROUTINE_WEEK) {
-    const { error } = await supabase
-      .from('routines')
-      .upsert({
-        day: routine.day,
-        description: routine.description,
-        steps: routine.steps,
-        image: routine.image
-      })
-
-    if (error) console.error('❌ Erro ao migrar rotina:', error)
-  }
-  console.log('✅ Rotinas migradas!')
-}
-
-// Função para migrar cuidados
-async function migrateCare() {
-  console.log('📦 Migrando cuidados...')
-  for (const pillar of CARE_PILLARS) {
-    const { error } = await supabase
-      .from('care_tips')
-      .upsert({
-        num: pillar.num,
-        title: pillar.title,
-        text: pillar.text,
-        image: pillar.image
-      })
-
-    if (error) console.error('❌ Erro ao migrar dica:', error)
-  }
-  console.log('✅ Cuidados migrados!')
-}
-
-// Executar todas as migrações
 async function migrateAll() {
-  try {
-    console.log('🚀 Iniciando migração de dados para o Supabase...\n')
-    await migrateProductCategories()
-    await migrateProducts()
-    await migrateCurlTypes()
-    await migratePosts()
-    await migrateGlossary()
-    await migrateQuiz()
-    await migrateRoutines()
-    await migrateCare()
-    console.log('\n✅ Todas as migrações concluídas com sucesso!')
-  } catch (error) {
-    console.error('❌ Erro durante migração:', error)
-  }
+  await upsertRows(
+    "product_categories",
+    PRODUCT_CATEGORIES.map((category) => ({
+      slug: category.slug,
+      label: category.label,
+      intro: category.intro,
+      image: category.image,
+    })),
+    "slug",
+  );
+
+  await upsertRows(
+    "products",
+    PRODUCTS.map((product) => ({
+      slug: product.slug,
+      name: product.name,
+      brand: product.brand,
+      categorySlug: product.categorySlug,
+      categoryLabel: product.categoryLabel,
+      curls: product.curls,
+      need: product.need,
+      price: product.price,
+      promoPrice: product.promoPrice,
+      store: product.store,
+      affiliateUrl: product.affiliateUrl,
+      featured: product.featured,
+      updatedAt: product.updatedAt,
+      summary: product.summary,
+      image: product.image,
+      gallery: product.gallery,
+      sections: product.sections,
+    })),
+    "slug",
+  );
+
+  await upsertRows(
+    "curl_types",
+    CURL_TYPES.map((type) => ({
+      slug: type.slug,
+      code: type.code,
+      name: type.name,
+      familySlug: type.familySlug,
+      familyLabel: type.family,
+      tagline: type.tagline,
+      summary: type.summary,
+      description: type.summary,
+      image: type.image,
+      imageAlt: type.imageAlt,
+      facts: type.facts,
+      paragraphs: type.paragraphs,
+      characteristics: type.characteristics,
+      needs: type.needs,
+      finishing: type.finishing,
+      care: type.care,
+      productSlugs: type.productSlugs,
+    })),
+    "slug",
+  );
+
+  await upsertRows(
+    "posts",
+    POSTS.map((post) => ({
+      slug: post.slug,
+      title: post.title,
+      seoTitle: post.seoTitle,
+      seoDescription: post.seoDescription,
+      subtitle: post.subtitle,
+      category: post.category,
+      categorySlug: post.categorySlug,
+      tags: post.tags,
+      author: post.author,
+      date: post.date,
+      readingTime: post.readingTime,
+      featured: post.featured,
+      excerpt: post.excerpt,
+      image: post.image,
+      sections: post.sections,
+      productSlugs: post.productSlugs,
+      published: true,
+    })),
+    "slug",
+  );
+
+  await upsertRows(
+    "glossary",
+    GLOSSARY_TERMS.map((term) => ({
+      slug: term.slug,
+      term: term.term,
+      letter: term.letter,
+      short: term.short,
+      long: term.long,
+      definition: term.long,
+      codes: term.codes,
+      postSlugs: term.postSlugs,
+    })),
+    "slug",
+  );
+
+  await upsertRows(
+    "quiz_questions",
+    QUIZ_QUESTIONS.map((question) => ({
+      slug: question.id,
+      question: question.question,
+      helper: question.helper,
+      weight: question.weight,
+      options: question.options,
+      correct: null,
+    })),
+    "slug",
+  );
+
+  await upsertRows(
+    "routines",
+    ROUTINE_WEEK.map((routine, index) => ({
+      slug: `routine-${index + 1}`,
+      day: routine.day,
+      title: routine.title,
+      text: routine.text,
+      description: routine.text,
+      steps: [],
+    })),
+    "slug",
+  );
+
+  await upsertRows(
+    "care_tips",
+    CARE_PILLARS.map((tip) => ({
+      slug: `care-${tip.num}`,
+      num: tip.num,
+      title: tip.title,
+      text: tip.text,
+      description: tip.text,
+    })),
+    "slug",
+  );
 }
 
-migrateAll()
+migrateAll().catch((error: unknown) => {
+  console.error("❌ Migração interrompida:", error);
+  process.exitCode = 1;
+});

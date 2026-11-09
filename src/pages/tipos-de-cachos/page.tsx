@@ -1,9 +1,12 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import FaqList from "@/components/feature/FaqList";
-import { CURL_FAMILIES, CURL_TYPES } from "@/mocks/curlTypes";
+import { CURL_FAMILIES } from "@/mocks/curlTypes";
+import { curlTypesService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import CurlCompareTable from "@/pages/tipos-de-cachos/components/CurlCompareTable";
 import QuizTeaser from "@/pages/tipos-de-cachos/components/QuizTeaser";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -15,6 +18,9 @@ const GUIDE_DESCRIPTION =
   "Guia completo das curvaturas 2A, 2B, 2C, 3A, 3B, 3C, 4A, 4B e 4C: características, necessidades, finalização passo a passo, cuidados e produtos relacionados.";
 
 export default function CurlTypesPage() {
+  const loadCurls = useCallback(() => curlTypesService.getAll(), []);
+  const { data: curlTypes, error, loading, reload } = useSupabaseData(loadCurls);
+  const types = curlTypes ?? [];
   usePageMeta({
     title: GUIDE_TITLE,
     description: GUIDE_DESCRIPTION,
@@ -41,9 +47,9 @@ export default function CurlTypesPage() {
           "@type": "ItemList",
           "@id": `${pageUrl}#curvaturas`,
           name: "As nove curvaturas, de 2A a 4C",
-          numberOfItems: CURL_TYPES.length,
+          numberOfItems: types.length,
           itemListOrder: "https://schema.org/ItemListOrderAscending",
-          itemListElement: CURL_TYPES.map((type, index) => ({
+          itemListElement: types.map((type, index) => ({
             "@type": "ListItem",
             position: index + 1,
             item: {
@@ -83,7 +89,7 @@ export default function CurlTypesPage() {
         },
       ],
     };
-  }, []);
+  }, [types]);
 
   useStructuredData("curl-guide", structuredData);
 
@@ -114,10 +120,20 @@ export default function CurlTypesPage() {
 
         <QuizTeaser />
 
-        <CurlCompareTable />
+        <SupabaseState loading={loading} error={error} onRetry={reload} />
+
+        {!loading && !error && types.length > 0 ? <CurlCompareTable types={types} /> : null}
+
+        {!loading && !error && types.length === 0 ? (
+          <div className="wrap empty">
+            <h3>Os tipos de cachos ainda não foram cadastrados</h3>
+            <p>Os guias cadastrados no banco aparecerão aqui.</p>
+          </div>
+        ) : null}
 
         {CURL_FAMILIES.map((family) => {
-          const types = CURL_TYPES.filter((item) => item.familySlug === family.slug);
+          const familyTypes = types.filter((item) => item.familySlug === family.slug);
+          if (!familyTypes.length) return null;
           return (
             <section className="curl-family" key={family.slug}>
               <div className="wrap">
@@ -132,7 +148,7 @@ export default function CurlTypesPage() {
                 </div>
 
                 <div className="curl-grid">
-                  {types.map((type) => (
+                  {familyTypes.map((type) => (
                     <article className="curl-card" key={type.slug}>
                       <Link
                         className="curl-card-media"

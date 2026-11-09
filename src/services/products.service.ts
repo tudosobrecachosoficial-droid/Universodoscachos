@@ -1,9 +1,9 @@
-import { supabase } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import type { Product, ProductCategory } from '@/lib/supabase/types'
 
 export const productsService = {
   async getAll() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('products')
       .select('*')
       .order('created_at', { ascending: false })
@@ -13,21 +13,21 @@ export const productsService = {
   },
 
   async getBySlug(slug: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('products')
       .select('*')
       .eq('slug', slug)
-      .single()
+      .maybeSingle()
 
     if (error) throw error
-    return data as Product
+    return data as Product | null
   },
 
   async getByCategory(categorySlug: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('products')
       .select('*')
-      .eq('category', categorySlug)
+      .eq('categorySlug', categorySlug)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -35,7 +35,7 @@ export const productsService = {
   },
 
   async getFeatured() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('products')
       .select('*')
       .eq('featured', true)
@@ -46,12 +46,23 @@ export const productsService = {
   },
 
   async getCategories() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('product_categories')
       .select('*')
-      .order('name')
+      .order('label')
 
     if (error) throw error
     return data as ProductCategory[]
+  },
+
+  async getCategoryBySlug(slug: string) {
+    const { data, error } = await getSupabaseClient()
+      .from('product_categories')
+      .select('*')
+      .eq('slug', slug)
+      .maybeSingle()
+
+    if (error) throw error
+    return data as ProductCategory | null
   }
 }

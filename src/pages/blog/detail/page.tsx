@@ -1,11 +1,11 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import NewsletterBlock from "@/components/feature/NewsletterBlock";
-import { POSTS } from "@/mocks/posts";
-import { PRODUCTS } from "@/mocks/products";
-import { GLOSSARY_TERMS } from "@/mocks/glossary";
+import { postsService, productsService, glossaryService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { formatLongDate } from "@/utils/date";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useStructuredData } from "@/hooks/useStructuredData";
@@ -20,29 +20,44 @@ const slugifyHeading = (text: string) =>
 
 export default function ArticlePage() {
   const { slug } = useParams();
-  const post = POSTS.find((item) => item.slug === slug);
+  const loadPost = useCallback(() => postsService.getBySlug(slug ?? ""), [slug]);
+  const loadPosts = useCallback(() => postsService.getAll(), []);
+  const loadProducts = useCallback(() => productsService.getAll(), []);
+  const loadTerms = useCallback(() => glossaryService.getAll(), []);
+  const postQuery = useSupabaseData(loadPost);
+  const postsQuery = useSupabaseData(loadPosts);
+  const productsQuery = useSupabaseData(loadProducts);
+  const termsQuery = useSupabaseData(loadTerms);
+  const post = postQuery.data;
 
   const related = useMemo(() => {
     if (!post) return [];
-    const sameCategory = POSTS.filter(
+    const allPosts = postsQuery.data ?? [];
+    const sameCategory = allPosts.filter(
       (item) => item.slug !== post.slug && item.categorySlug === post.categorySlug,
     );
-    const others = POSTS.filter(
+    const others = allPosts.filter(
       (item) => item.slug !== post.slug && item.categorySlug !== post.categorySlug,
     );
     return [...sameCategory, ...others].slice(0, 3);
-  }, [post]);
+  }, [post, postsQuery.data]);
 
   const products = useMemo(
-    () => (post ? PRODUCTS.filter((item) => post.productSlugs.includes(item.slug)) : []),
-    [post],
+    () =>
+      post
+        ? (productsQuery.data ?? []).filter((item) => (post.productSlugs ?? []).includes(item.slug))
+        : [],
+    [post, productsQuery.data],
   );
 
   /* Terms from the glossary that are used in this article, so the reading
      can continue from the word to the explanation. */
   const terms = useMemo(
-    () => (post ? GLOSSARY_TERMS.filter((item) => item.postSlugs.includes(post.slug)) : []),
-    [post],
+    () =>
+      post
+        ? (termsQuery.data ?? []).filter((item) => (item.postSlugs ?? []).includes(post.slug))
+        : [],
+    [post, termsQuery.data],
   );
 
   usePageMeta({
@@ -78,10 +93,14 @@ export default function ArticlePage() {
           description: post.excerpt,
           image: [post.image],
           inLanguage: "pt-BR",
-          datePublished: post.date,
-          dateModified: post.date,
+          ...(post.date
+            ? {
+                datePublished: post.date,
+                dateModified: post.date,
+              }
+            : {}),
           articleSection: post.category,
-          keywords: post.tags.join(", "),
+          keywords: (post.tags ?? []).join(", "),
           mainEntityOfPage: { "@id": pageUrl },
           author: {
             "@type": "Organization",
@@ -104,6 +123,18 @@ export default function ArticlePage() {
   }, [post]);
 
   useStructuredData("blog-article", structuredData);
+
+  if (!post && (postQuery.loading || postQuery.error)) {
+    return (
+      <div className="page">
+        <SiteNav solid />
+        <main className="wrap" style={{ paddingTop: 160, paddingBottom: 120 }}>
+          <SupabaseState loading={postQuery.loading} error={postQuery.error} onRetry={postQuery.reload} />
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -156,7 +187,7 @@ export default function ArticlePage() {
                   {post.author}
                 </Link>
                 <span className="dot">·</span>
-                <span>{post.tags.map((tag) => `#${tag}`).join("  ")}</span>
+                <span>{(post.tags ?? []).map((tag) => `#${tag}`).join("  ")}</span>
               </div>
 
               <div className="article-cover">
@@ -170,15 +201,15 @@ export default function ArticlePage() {
               <div className="prose-udc">
                 <p className="prose-lead">{post.excerpt}</p>
 
-                {post.sections.map((section) => (
+                {(post.sections ?? []).map((section) => (
                   <section key={section.heading} id={slugifyHeading(section.heading)}>
                     <h2>{section.heading}</h2>
-                    {section.paragraphs.map((paragraph) => (
+                    {(section.paragraphs ?? []).map((paragraph) => (
                       <p key={paragraph.slice(0, 40)}>{paragraph}</p>
                     ))}
-                    {section.list.length > 0 ? (
+                    {(section.list ?? []).length > 0 ? (
                       <ul>
-                        {section.list.map((item) => (
+                        {(section.list ?? []).map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
@@ -203,7 +234,7 @@ export default function ArticlePage() {
 
               <aside className="toc" aria-label="Sumário do artigo">
                 <p>Neste texto</p>
-                {post.sections.map((section) => (
+                {(post.sections ?? []).map((section) => (
                   <a key={section.heading} href={`#${slugifyHeading(section.heading)}`}>
                     {section.heading}
                   </a>

@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
@@ -6,16 +7,28 @@ import {
   DAY_AFTER_TIPS,
   ROUTINE_PLAN,
   ROUTINE_PRODUCT_SLUGS,
-  ROUTINE_WEEK,
   WASH_STEPS,
 } from "@/mocks/routines";
-import { CURL_TYPES } from "@/mocks/curlTypes";
-import { PRODUCTS } from "@/mocks/products";
-import { POSTS } from "@/mocks/posts";
+import { curlTypesService, productsService, postsService, routinesService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { formatShortDate } from "@/utils/date";
 
 export default function RoutinesPage() {
+  const loadRoutine = useCallback(() => routinesService.getAll(), []);
+  const loadCurls = useCallback(() => curlTypesService.getAll(), []);
+  const loadProducts = useCallback(() => productsService.getAll(), []);
+  const loadPosts = useCallback(() => postsService.getAll(), []);
+  const routineQuery = useSupabaseData(loadRoutine);
+  const curlQuery = useSupabaseData(loadCurls);
+  const productsQuery = useSupabaseData(loadProducts);
+  const postsQuery = useSupabaseData(loadPosts);
+  const routineWeek = routineQuery.data ?? [];
+  const curlTypes = curlQuery.data ?? [];
+  const allProducts = productsQuery.data ?? [];
+  const allPosts = postsQuery.data ?? [];
+
   usePageMeta({
     title: "Rotinas capilares para cachos: semana, mês e day after | Universo dos Cachos",
     description:
@@ -24,18 +37,30 @@ export default function RoutinesPage() {
   });
 
   const products = ROUTINE_PRODUCT_SLUGS
-    .map((slug) => PRODUCTS.find((item) => item.slug === slug))
-    .filter((item): item is (typeof PRODUCTS)[number] => Boolean(item));
+    .map((slug) => allProducts.find((item) => item.slug === slug))
+    .filter((item): item is (typeof allProducts)[number] => Boolean(item));
 
-  const posts = POSTS
+  const posts = allPosts
     .filter((post) => post.categorySlug === "rotinas")
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
     .slice(0, 3);
 
   return (
     <div className="page">
       <SiteNav solid />
       <main>
+        <div className="wrap">
+          <SupabaseState
+            loading={routineQuery.loading || curlQuery.loading || productsQuery.loading || postsQuery.loading}
+            error={routineQuery.error || curlQuery.error || productsQuery.error || postsQuery.error}
+            onRetry={() => {
+              routineQuery.reload();
+              curlQuery.reload();
+              productsQuery.reload();
+              postsQuery.reload();
+            }}
+          />
+        </div>
         <header className="page-head">
           <div className="wrap">
             <nav className="crumbs" aria-label="Você está aqui">
@@ -94,11 +119,11 @@ export default function RoutinesPage() {
             </p>
 
             <div className="routine-week">
-              {ROUTINE_WEEK.map((item) => (
-                <div className="routine-row" key={item.day}>
+              {routineWeek.map((item) => (
+                <div className="routine-row" key={item.id}>
                   <span className="routine-day">{item.day}</span>
                   <h3>{item.title}</h3>
-                  <p>{item.text}</p>
+                  <p>{item.text ?? item.description}</p>
                 </div>
               ))}
             </div>
@@ -198,7 +223,7 @@ export default function RoutinesPage() {
             </div>
 
             <div className="curl-mini-grid">
-              {CURL_TYPES.map((type) => (
+              {curlTypes.map((type) => (
                 <Link className="curl-mini" key={type.slug} to={`/tipos-de-cachos/${type.slug}`}>
                   <span className="curl-mini-code">{type.code}</span>
                   <span className="curl-mini-name">{type.name}</span>

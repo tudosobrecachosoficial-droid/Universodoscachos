@@ -1,11 +1,10 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
-import { PRODUCTS, PRODUCT_CATEGORIES } from "@/mocks/products";
-import { POSTS } from "@/mocks/posts";
-import { CURL_TYPES } from "@/mocks/curlTypes";
-import { GLOSSARY_TERMS } from "@/mocks/glossary";
+import { curlTypesService, glossaryService, postsService, productsService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useStructuredData } from "@/hooks/useStructuredData";
 
@@ -24,16 +23,29 @@ const MAIN_PAGES = [
   { to: "/politica-de-privacidade", label: "Política de privacidade", note: "Dados e cookies" },
 ];
 
-const categories = PRODUCT_CATEGORIES.filter((item) => item.slug !== "todos");
-
 export default function SiteIndexPage() {
+  const loadProducts = useCallback(() => productsService.getAll(), []);
+  const loadCategories = useCallback(() => productsService.getCategories(), []);
+  const loadPosts = useCallback(() => postsService.getAll(), []);
+  const loadCurls = useCallback(() => curlTypesService.getAll(), []);
+  const loadTerms = useCallback(() => glossaryService.getAll(), []);
+  const productsQuery = useSupabaseData(loadProducts);
+  const categoriesQuery = useSupabaseData(loadCategories);
+  const postsQuery = useSupabaseData(loadPosts);
+  const curlsQuery = useSupabaseData(loadCurls);
+  const termsQuery = useSupabaseData(loadTerms);
+  const products = productsQuery.data ?? [];
+  const categories = (categoriesQuery.data ?? []).filter((item) => item.slug !== "todos");
+  const posts = postsQuery.data ?? [];
+  const curlTypes = curlsQuery.data ?? [];
+  const terms = termsQuery.data ?? [];
   const totalPages =
     MAIN_PAGES.length +
-    CURL_TYPES.length +
+    curlTypes.length +
     categories.length +
-    PRODUCTS.length +
-    POSTS.length +
-    GLOSSARY_TERMS.length;
+    products.length +
+    posts.length +
+    terms.length;
 
   usePageMeta({
     title: "Índice do site — todas as páginas do Universo dos Cachos",
@@ -129,6 +141,17 @@ export default function SiteIndexPage() {
         </header>
 
         <div className="wrap">
+          <SupabaseState
+            loading={productsQuery.loading || categoriesQuery.loading || postsQuery.loading || curlsQuery.loading || termsQuery.loading}
+            error={productsQuery.error || categoriesQuery.error || postsQuery.error || curlsQuery.error || termsQuery.error}
+            onRetry={() => {
+              productsQuery.reload();
+              categoriesQuery.reload();
+              postsQuery.reload();
+              curlsQuery.reload();
+              termsQuery.reload();
+            }}
+          />
           <section className="index-block" aria-labelledby="indice-principal">
             <div className="index-head">
               <h2 id="indice-principal">
@@ -153,10 +176,10 @@ export default function SiteIndexPage() {
               <h2 id="indice-curvaturas">
                 As nove <em>curvaturas</em>
               </h2>
-              <span className="index-count">{CURL_TYPES.length} guias</span>
+              <span className="index-count">{curlTypes.length} guias</span>
             </div>
             <ul className="index-grid">
-              {CURL_TYPES.map((curl) => (
+              {curlTypes.map((curl) => (
                 <li key={curl.slug}>
                   <Link to={`/tipos-de-cachos/${curl.slug}`}>
                     <span className="index-code">{curl.code}</span>
@@ -174,7 +197,7 @@ export default function SiteIndexPage() {
                 A <em>prateleira</em>
               </h2>
               <span className="index-count">
-                {categories.length} categorias · {PRODUCTS.length} fichas
+                {categories.length} categorias · {products.length} fichas
               </span>
             </div>
             <ul className="index-grid">
@@ -189,7 +212,7 @@ export default function SiteIndexPage() {
             </ul>
 
             <ul className="index-grid index-grid--products">
-              {PRODUCTS.map((product) => (
+              {products.map((product) => (
                 <li key={product.slug}>
                   <Link to={`/produtos/${product.slug}`}>
                     <span>{product.name}</span>
@@ -205,10 +228,10 @@ export default function SiteIndexPage() {
               <h2 id="indice-blog">
                 Todos os <em>artigos</em>
               </h2>
-              <span className="index-count">{POSTS.length} textos</span>
+              <span className="index-count">{posts.length} textos</span>
             </div>
             <ul className="index-grid">
-              {POSTS.map((post) => (
+              {posts.map((post) => (
                 <li key={post.slug}>
                   <Link to={`/blog/${post.slug}`}>
                     <span>{post.title}</span>
@@ -224,10 +247,10 @@ export default function SiteIndexPage() {
               <h2 id="indice-glossario">
                 Termos do <em>glossário</em>
               </h2>
-              <span className="index-count">{GLOSSARY_TERMS.length} verbetes</span>
+              <span className="index-count">{terms.length} verbetes</span>
             </div>
             <ul className="index-grid">
-              {GLOSSARY_TERMS.map((term) => (
+              {terms.map((term) => (
                 <li key={term.slug}>
                   <Link to={`/glossario#${term.slug}`}>
                     <span>{term.term}</span>

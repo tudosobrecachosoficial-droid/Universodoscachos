@@ -1,10 +1,14 @@
+import { useCallback } from "react";
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import Panel from "@/pages/home/components/Panel";
-import { PRODUCTS } from "@/mocks/products";
+import { productsService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 
 export default function ProductsPanel() {
-  const shelf = PRODUCTS.filter((product) => product.featured).slice(0, 3);
+  const loadProducts = useCallback(() => productsService.getFeatured(), []);
+  const { data: shelf, error, loading, reload } = useSupabaseData(loadProducts);
 
   return (
     <Panel
@@ -27,9 +31,11 @@ export default function ProductsPanel() {
           abre a prateleira filtrada por aquela curvatura.
         </p>
 
+        <SupabaseState loading={loading} error={error} onRetry={reload} />
+
         <div className="shelf">
-          {shelf.map((product, index) => {
-            const code = product.curls[0];
+          {(shelf ?? []).map((product, index) => {
+            const code = product.curls?.[0] ?? "";
             return (
               <article
                 className="card"
@@ -55,10 +61,12 @@ export default function ProductsPanel() {
                     </span>
                   </span>
                 </Link>
-                <Link className="card-curl" to={`/produtos?tipo=${code.toLowerCase()}`}>
-                  <i className="ri-scissors-line" aria-hidden="true" />
-                  Ver produtos {code}
-                </Link>
+                {code ? (
+                  <Link className="card-curl" to={`/produtos?tipo=${code.toLowerCase()}`}>
+                    <i className="ri-scissors-line" aria-hidden="true" />
+                    Ver produtos {code}
+                  </Link>
+                ) : null}
               </article>
             );
           })}

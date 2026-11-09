@@ -1,13 +1,18 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import NewsletterBlock from "@/components/feature/NewsletterBlock";
-import { POSTS, POST_CATEGORIES } from "@/mocks/posts";
+import { POST_CATEGORIES } from "@/mocks/posts";
+import { postsService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { formatShortDate } from "@/utils/date";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 export default function BlogPage() {
+  const loadPosts = useCallback(() => postsService.getAll(), []);
+  const { data: posts, error, loading, reload } = useSupabaseData(loadPosts);
   usePageMeta({
     title: "Blog do Universo dos Cachos — cuidados, rotinas e tipos de cachos",
     description:
@@ -18,17 +23,18 @@ export default function BlogPage() {
   const [category, setCategory] = useState("todos");
 
   const sorted = useMemo(
-    () => [...POSTS].sort((a, b) => b.date.localeCompare(a.date)),
-    [],
+    () => [...(posts ?? [])].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "")),
+    [posts],
   );
 
   const featured = sorted.find((post) => post.featured) ?? sorted[0];
 
   const rest = useMemo(() => {
+    if (!featured) return [];
     const list = sorted.filter((post) => post.slug !== featured.slug);
     if (category === "todos") return list;
     return list.filter((post) => post.categorySlug === category);
-  }, [sorted, featured.slug, category]);
+  }, [sorted, featured, category]);
 
   return (
     <div className="page">
@@ -60,7 +66,9 @@ export default function BlogPage() {
         </header>
 
         <div className="wrap">
-          <article className="feature-post">
+          <SupabaseState loading={loading} error={error} onRetry={reload} />
+
+          {featured ? <article className="feature-post">
             <Link to={`/blog/${featured.slug}`} aria-label={featured.title}>
               <div className="feature-media">
                 <img src={featured.image} alt={featured.title} width={1600} height={1000} />
@@ -83,7 +91,13 @@ export default function BlogPage() {
                 <i className="ri-arrow-right-line" aria-hidden="true" />
               </Link>
             </div>
-          </article>
+          </article> : !loading && !error ? (
+            <div className="empty">
+              <i className="ri-article-line" aria-hidden="true" />
+              <h3>Ainda não há artigos publicados</h3>
+              <p>Os artigos publicados no banco aparecerão aqui.</p>
+            </div>
+          ) : null}
 
           <section className="filters" aria-label="Categorias do blog" style={{ paddingTop: 26 }}>
             <div className="chip-row">
@@ -101,7 +115,7 @@ export default function BlogPage() {
             </div>
           </section>
 
-          {rest.length === 0 ? (
+          {!loading && !error && rest.length === 0 && featured ? (
             <div className="empty">
               <i className="ri-article-line" aria-hidden="true" />
               <h3>Ainda não há textos nesta categoria</h3>

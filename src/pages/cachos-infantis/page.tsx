@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import CategoryChips from "@/components/feature/CategoryChips";
-import { PRODUCTS } from "@/mocks/products";
-import { POSTS } from "@/mocks/posts";
+import { productsService, postsService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { formatShortDate } from "@/utils/date";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
@@ -73,6 +74,13 @@ const SAFETY = [
 ];
 
 export default function KidsPage() {
+  const loadProducts = useCallback(() => productsService.getAll(), []);
+  const loadPosts = useCallback(() => postsService.getAll(), []);
+  const productsQuery = useSupabaseData(loadProducts);
+  const postsQuery = useSupabaseData(loadPosts);
+  const allProducts = productsQuery.data ?? [];
+  const allPosts = postsQuery.data ?? [];
+
   usePageMeta({
     title: "Cachos infantis: cuidados, rotina e produtos para crianças | Universo dos Cachos",
     description:
@@ -82,23 +90,33 @@ export default function KidsPage() {
 
   const kidsProducts = useMemo(
     () =>
-      PRODUCTS.filter((product) => product.categorySlug === "infantil").sort(
+      allProducts.filter((product) => product.categorySlug === "infantil").sort(
         (a, b) => Number(b.featured) - Number(a.featured),
       ),
-    [],
+    [allProducts],
   );
 
   const kidsPosts = useMemo(() => {
-    const priority = POSTS.filter(
+    const priority = allPosts.filter(
       (post) => post.categorySlug === "cachos-infantis" || post.categorySlug === "cuidados",
-    ).sort((a, b) => b.date.localeCompare(a.date));
+    ).sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
     return priority.slice(0, 3);
-  }, []);
+  }, [allPosts]);
 
   return (
     <div className="page">
       <SiteNav solid />
       <main>
+        <div className="wrap">
+          <SupabaseState
+            loading={productsQuery.loading || postsQuery.loading}
+            error={productsQuery.error || postsQuery.error}
+            onRetry={() => {
+              productsQuery.reload();
+              postsQuery.reload();
+            }}
+          />
+        </div>
         <div className="wrap">
           <section className="kids-hero">
             <div>

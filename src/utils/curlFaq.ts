@@ -1,4 +1,4 @@
-import type { CurlType } from "@/mocks/curlTypes";
+import type { CurlType } from "@/lib/supabase/types";
 
 export type FaqEntry = {
   question: string;

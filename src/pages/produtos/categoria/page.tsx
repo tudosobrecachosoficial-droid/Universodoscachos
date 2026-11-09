@@ -1,8 +1,11 @@
+import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import CategoryChips from "@/components/feature/CategoryChips";
-import { PRODUCTS, PRODUCT_CATEGORIES } from "@/mocks/products";
+import { productsService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 type Props = {
@@ -10,7 +13,11 @@ type Props = {
 };
 
 export default function ProductCategoryPage({ slug }: Props) {
-  const category = PRODUCT_CATEGORIES.find((item) => item.slug === slug);
+  const loadCategory = useCallback(() => productsService.getCategoryBySlug(slug), [slug]);
+  const loadProducts = useCallback(() => productsService.getByCategory(slug), [slug]);
+  const categoryQuery = useSupabaseData(loadCategory);
+  const productsQuery = useSupabaseData(loadProducts);
+  const category = categoryQuery.data;
   const label = category?.label ?? "Categoria";
   const intro = category?.intro ?? "";
 
@@ -22,12 +29,8 @@ export default function ProductCategoryPage({ slug }: Props) {
     path: `/produtos/${slug}`,
   });
 
-  const products = PRODUCTS.filter((item) => item.categorySlug === slug).sort(
+  const products = [...(productsQuery.data ?? [])].sort(
     (a, b) => Number(b.featured) - Number(a.featured),
-  );
-
-  const others = PRODUCT_CATEGORIES.filter(
-    (item) => item.slug !== "todos" && item.slug !== slug,
   );
 
   return (
@@ -76,7 +79,23 @@ export default function ProductCategoryPage({ slug }: Props) {
             <CategoryChips active={slug} />
           </section>
 
-          {products.length === 0 ? (
+          <SupabaseState
+            loading={categoryQuery.loading || productsQuery.loading}
+            error={categoryQuery.error || productsQuery.error}
+            onRetry={() => {
+              categoryQuery.reload();
+              productsQuery.reload();
+            }}
+          />
+
+          {!categoryQuery.loading && !productsQuery.loading && !categoryQuery.error && !productsQuery.error && !category ? (
+            <div className="empty">
+              <i className="ri-price-tag-3-line" aria-hidden="true" />
+              <h3>Categoria não encontrada</h3>
+              <p>Esta categoria não está cadastrada no banco de dados.</p>
+              <Link className="section-link" to="/produtos">Ver o catálogo</Link>
+            </div>
+          ) : !categoryQuery.loading && !productsQuery.loading && !categoryQuery.error && !productsQuery.error && products.length === 0 ? (
             <div className="empty">
               <i className="ri-price-tag-3-line" aria-hidden="true" />
               <h3>Ainda não há produtos nesta categoria</h3>
@@ -89,7 +108,7 @@ export default function ProductCategoryPage({ slug }: Props) {
                 <i className="ri-arrow-right-line" aria-hidden="true" />
               </Link>
             </div>
-          ) : (
+          ) : !productsQuery.loading && !productsQuery.error && !categoryQuery.loading && !categoryQuery.error && category ? (
             <div className="grid-products">
               {products.map((product) => (
                 <Link className="pcard" key={product.slug} to={`/produtos/${product.slug}`}>
@@ -126,7 +145,7 @@ export default function ProductCategoryPage({ slug }: Props) {
                 </Link>
               ))}
             </div>
-          )}
+          ) : null}
 
           <p className="disclosure">
             <strong>Transparência:</strong> este conteúdo contém links de afiliados. Podemos receber
@@ -139,11 +158,6 @@ export default function ProductCategoryPage({ slug }: Props) {
           </p>
 
           <div className="cat-siblings">
-            {others.map((item) => (
-              <Link key={item.slug} className="chip" to={`/produtos/${item.slug}`}>
-                {item.label}
-              </Link>
-            ))}
             <Link className="chip" to="/produtos">
               Ver catálogo completo
             </Link>

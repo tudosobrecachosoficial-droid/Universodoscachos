@@ -1,12 +1,13 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import NewsletterBlock from "@/components/feature/NewsletterBlock";
 import FaqList from "@/components/feature/FaqList";
-import { CURL_FAMILIES, CURL_TYPES, getCurlType } from "@/mocks/curlTypes";
-import { PRODUCTS } from "@/mocks/products";
-import { POSTS } from "@/mocks/posts";
+import { CURL_FAMILIES } from "@/mocks/curlTypes";
+import { curlTypesService, productsService, postsService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useStructuredData } from "@/hooks/useStructuredData";
 import { buildCurlFaq } from "@/utils/curlFaq";
@@ -16,9 +17,18 @@ const RELATED_CATEGORIES = ["tipos-de-cachos", "finalizacao", "cuidados", "rotin
 
 export default function CurlTypeDetailPage() {
   const { slug } = useParams();
-  const curl = getCurlType(slug);
+  const loadCurl = useCallback(() => curlTypesService.getBySlug(slug ?? ""), [slug]);
+  const loadCurls = useCallback(() => curlTypesService.getAll(), []);
+  const loadProducts = useCallback(() => productsService.getAll(), []);
+  const loadPosts = useCallback(() => postsService.getAll(), []);
+  const curlQuery = useSupabaseData(loadCurl);
+  const curlsQuery = useSupabaseData(loadCurls);
+  const productsQuery = useSupabaseData(loadProducts);
+  const postsQuery = useSupabaseData(loadPosts);
+  const curl = curlQuery.data;
   const family = CURL_FAMILIES.find((item) => item.slug === curl?.familySlug);
-  const index = CURL_TYPES.findIndex((item) => item.slug === slug);
+  const curls = curlsQuery.data ?? [];
+  const index = curls.findIndex((item) => item.slug === slug);
 
   const metaTitle = curl
     ? `${curl.name}: características, finalização e cuidados | Universo dos Cachos`
@@ -39,9 +49,9 @@ export default function CurlTypeDetailPage() {
   const products = useMemo(() => {
     if (!curl) return [];
     return curl.productSlugs
-      .map((productSlug) => PRODUCTS.find((item) => item.slug === productSlug))
-      .filter((item): item is (typeof PRODUCTS)[number] => Boolean(item));
-  }, [curl]);
+      .map((productSlug) => (productsQuery.data ?? []).find((item) => item.slug === productSlug))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  }, [curl, productsQuery.data]);
 
   const structuredData = useMemo(() => {
     if (!curl) return null;
@@ -121,26 +131,39 @@ export default function CurlTypeDetailPage() {
   const relatedPosts = useMemo(() => {
     if (!curl) return [];
     const tagKey = curl.code.toLowerCase();
-    const direct = POSTS.filter((post) =>
-      post.tags.some((tag) => tag.toLowerCase() === tagKey),
+    const allPosts = postsQuery.data ?? [];
+    const direct = allPosts.filter((post) =>
+      (post.tags ?? []).some((tag) => tag.toLowerCase() === tagKey),
     );
-    const contextual = POSTS.filter(
+    const contextual = allPosts.filter(
       (post) =>
         !direct.includes(post) && RELATED_CATEGORIES.includes(post.categorySlug),
     );
-    const rest = POSTS.filter(
+    const rest = allPosts.filter(
       (post) => !direct.includes(post) && !contextual.includes(post),
     );
     return [...direct, ...contextual, ...rest].slice(0, 3);
-  }, [curl]);
+  }, [curl, postsQuery.data]);
 
   const pager = useMemo(() => {
     if (index < 0) return { prev: undefined, next: undefined };
     return {
-      prev: index > 0 ? CURL_TYPES[index - 1] : undefined,
-      next: index < CURL_TYPES.length - 1 ? CURL_TYPES[index + 1] : undefined,
+      prev: index > 0 ? curls[index - 1] : undefined,
+      next: index >= 0 && index < curls.length - 1 ? curls[index + 1] : undefined,
     };
-  }, [index]);
+  }, [index, curls]);
+
+  if (!curl && (curlQuery.loading || curlQuery.error)) {
+    return (
+      <div className="page">
+        <SiteNav solid />
+        <main className="wrap" style={{ paddingTop: 160, paddingBottom: 120 }}>
+          <SupabaseState loading={curlQuery.loading} error={curlQuery.error} onRetry={curlQuery.reload} />
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
 
   if (!curl) {
     return (
@@ -456,7 +479,7 @@ export default function CurlTypeDetailPage() {
 
             {family ? (
               <p className="curl-family-foot">
-                Família {family.label} — {family.range}.{" "}
+                {family ? `Família ${family.label} — ${family.range}. ` : ""}
                 <Link to="/tipos-de-cachos">Ver o guia completo de curvaturas.</Link>
               </p>
             ) : null}

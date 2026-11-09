@@ -1,21 +1,27 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import NewsletterBlock from "@/components/feature/NewsletterBlock";
 import FaqList from "@/components/feature/FaqList";
-import { QUIZ_DISCLAIMER, QUIZ_FAQ, QUIZ_QUESTIONS } from "@/mocks/quiz";
-import { CURL_FINISH_HINTS, CURL_TYPES } from "@/mocks/curlTypes";
+import { QUIZ_DISCLAIMER, QUIZ_FAQ } from "@/mocks/quiz";
+import { quizService, curlTypesService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useStructuredData } from "@/hooks/useStructuredData";
-
-const EMPTY_ANSWERS: (string | null)[] = [null, null, null];
 
 const QUIZ_TITLE = "Quiz: qual é o seu tipo de cacho? | Universo dos Cachos";
 const QUIZ_DESCRIPTION =
   "Três perguntas rápidas sobre formato, umidade e volume sugerem a sua curvatura — de 2A a 4C — com link direto para o guia e para os produtos indicados.";
 
 export default function QuizPage() {
+  const loadQuestions = useCallback(() => quizService.getAll(), []);
+  const loadCurlTypes = useCallback(() => curlTypesService.getAll(), []);
+  const { data: loadedQuestions, error, loading, reload } = useSupabaseData(loadQuestions);
+  const curlQuery = useSupabaseData(loadCurlTypes);
+  const questions = loadedQuestions ?? [];
+  const curlTypes = curlQuery.data ?? [];
   usePageMeta({
     title: QUIZ_TITLE,
     description: QUIZ_DESCRIPTION,
@@ -54,35 +60,39 @@ export default function QuizPage() {
 
   useStructuredData("quiz", structuredData);
 
-  const [answers, setAnswers] = useState<(string | null)[]>(EMPTY_ANSWERS);
+  const [answers, setAnswers] = useState<(string | null)[]>([]);
   const [step, setStep] = useState(0);
   const [finished, setFinished] = useState(false);
 
-  const total = QUIZ_QUESTIONS.length;
+  const total = questions.length;
 
   const ranking = useMemo(() => {
     const scores: Record<string, number> = {};
-    QUIZ_QUESTIONS.forEach((question, index) => {
+    questions.forEach((question, index) => {
       const option = question.options.find((item) => item.id === answers[index]);
       if (!option) return;
       Object.entries(option.scores).forEach(([code, value]) => {
-        scores[code] = (scores[code] ?? 0) + value * question.weight;
+        scores[code] = (scores[code] ?? 0) + value * (question.weight ?? 1);
       });
     });
-    return [...CURL_TYPES]
+    return [...curlTypes]
       .map((type) => ({ type, score: scores[type.code] ?? 0 }))
       .sort((a, b) => b.score - a.score);
-  }, [answers]);
+  }, [answers, questions, curlTypes]);
 
-  const primary = ranking[0].type;
-  const secondary = ranking[1].type;
+  const primary = ranking[0]?.type ?? curlTypes[0];
+  const secondary = ranking[1]?.type ?? curlTypes[1];
   const answered = answers.filter(Boolean).length;
   const progress = finished ? 100 : (answered / total) * 100;
-  const current = QUIZ_QUESTIONS[step];
+  const current = questions[step];
   const picked = answers[step];
 
   const choose = (id: string) => {
-    setAnswers((prev) => prev.map((value, index) => (index === step ? id : value)));
+    setAnswers((previous) => {
+      const next = Array.from({ length: total }, (_, index) => previous[index] ?? null);
+      next[step] = id;
+      return next;
+    });
   };
 
   const goNext = () => {
@@ -99,7 +109,7 @@ export default function QuizPage() {
   };
 
   const restart = () => {
-    setAnswers(EMPTY_ANSWERS);
+    setAnswers(Array.from({ length: total }, () => null));
     setStep(0);
     setFinished(false);
   };
@@ -134,7 +144,21 @@ export default function QuizPage() {
         <section className="quiz-section">
           <div className="wrap">
             <div className="quiz-wrap">
-              {finished ? (
+              <SupabaseState
+                loading={loading || curlQuery.loading}
+                error={error || curlQuery.error}
+                onRetry={() => {
+                  reload();
+                  curlQuery.reload();
+                }}
+              />
+              {!loading && !curlQuery.loading && !error && !curlQuery.error && total === 0 ? (
+                <div className="empty">
+                  <h3>O quiz ainda não foi cadastrado</h3>
+                  <p>As perguntas cadastradas no banco aparecerão aqui.</p>
+                </div>
+              ) : null}
+              {!loading && !curlQuery.loading && !error && !curlQuery.error && total > 0 && curlTypes.length > 1 && finished && primary && secondary ? (
                 <div className="quiz-card">
                   <div className="quiz-result">
                     <div className="quiz-result-media">
@@ -161,7 +185,7 @@ export default function QuizPage() {
 
                       <p className="quiz-result-finish">
                         <span>Finalização</span>
-                        {CURL_FINISH_HINTS[primary.code]}
+                        {primary.finishing[0]?.text}
                       </p>
 
                       <div className="kids-ctas">
@@ -198,7 +222,7 @@ export default function QuizPage() {
 
                   <p className="quiz-disclaimer">{QUIZ_DISCLAIMER}</p>
                 </div>
-              ) : (
+              ) : !loading && !curlQuery.loading && !error && !curlQuery.error && total > 0 && curlTypes.length > 1 ? (
                 <div className="quiz-card">
                   <div className="quiz-progress">
                     <span className="quiz-step-label">
@@ -256,7 +280,7 @@ export default function QuizPage() {
                     </button>
                   </div>
                 </div>
-              )}
+              ) : null}
 
               <p className="quiz-foot">
                 Prefere ler primeiro? O{" "}

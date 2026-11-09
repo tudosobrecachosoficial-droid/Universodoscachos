@@ -3,8 +3,8 @@ type PricedProduct = {
   name: string;
   brand: string;
   summary: string;
-  price: string;
-  promoPrice: string;
+  price: string | null;
+  promoPrice: string | null;
   image: string;
 };
 
@@ -12,7 +12,8 @@ type PricedProduct = {
  * Turns a price string like "R$ 42,90" into the "42.90" format that schema.org
  * expects. Returns null when the item has no published price.
  */
-export const parsePrice = (value: string): string | null => {
+export const parsePrice = (value: string | null | undefined): string | null => {
+  if (!value) return null;
   const cleaned = value.replace(/[^\d.,]/g, "").trim();
   if (!cleaned) return null;
   const normalized = cleaned.replace(/\./g, "").replace(",", ".");
@@ -86,8 +87,8 @@ type SingleProduct = {
   name: string;
   brand: string;
   summary: string;
-  price: string;
-  promoPrice: string;
+  price: string | null;
+  promoPrice: string | null;
   image: string;
   gallery?: string[];
   categoryLabel?: string;

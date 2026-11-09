@@ -1,11 +1,15 @@
+import { useCallback } from "react";
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import Panel from "@/pages/home/components/Panel";
-import { POSTS } from "@/mocks/posts";
+import { postsService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { formatShortDate } from "@/utils/date";
 
 export default function ArticlesPanel() {
-  const posts = [...POSTS].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
+  const loadPosts = useCallback(() => postsService.getFeatured(3), []);
+  const { data: posts, error, loading, reload } = useSupabaseData(loadPosts);
 
   return (
     <Panel
@@ -27,8 +31,10 @@ export default function ArticlesPanel() {
           Rotinas honestas, guias de curvatura e respostas para as dúvidas que aparecem no banheiro.
         </p>
 
+        <SupabaseState loading={loading} error={error} onRetry={reload} />
+
         <div className="shelf">
-          {posts.map((post, index) => (
+          {(posts ?? []).map((post, index) => (
             <Link
               className="card"
               to={`/blog/${post.slug}`}

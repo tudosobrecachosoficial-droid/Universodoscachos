@@ -1,14 +1,16 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import CategoryChips from "@/components/feature/CategoryChips";
-import { CURL_FILTERS, PRODUCTS } from "@/mocks/products";
+import { productsService } from "@/services";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import SupabaseState from "@/components/feature/SupabaseState";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useStructuredData } from "@/hooks/useStructuredData";
 import { buildProductList } from "@/utils/offers";
 
-const BRANDS = Array.from(new Set(PRODUCTS.map((product) => product.brand))).sort((a, b) => a.localeCompare(b));
+const CURL_FILTERS = ["2A", "2B", "2C", "3A", "3B", "3C", "4A", "4B", "4C"];
 
 const SORTS = [
   { value: "destaque", label: "Destaques primeiro" },
@@ -17,6 +19,13 @@ const SORTS = [
 ];
 
 export default function ProductsPage() {
+  const loadProducts = useCallback(() => productsService.getAll(), []);
+  const { data: products, error, loading, reload } = useSupabaseData(loadProducts);
+  const productList = products ?? [];
+  const brands = Array.from(new Set(productList.map((product) => product.brand))).sort((a, b) =>
+    a.localeCompare(b),
+  );
+
   usePageMeta({
     title: "Produtos recomendados para cachos | Universo dos Cachos",
     description:
@@ -33,10 +42,10 @@ export default function ProductsPage() {
     const listDescription =
       "Prateleira do Universo dos Cachos: shampoos, condicionadores, máscaras, nutrição, reconstrução, cremes de pentear, ativadores, óleos capilares, acessórios e produtos infantis indicados por curvatura.";
 
-    const productList = buildProductList({
+    const schemaProductList = buildProductList({
       origin,
       pageUrl,
-      products: PRODUCTS,
+      products: productList,
       name: "Prateleira de produtos para cachos",
       description: listDescription,
     });
@@ -56,9 +65,9 @@ export default function ProductsPage() {
             name: "Universo dos Cachos",
             url: `${origin}/`,
           },
-          ...(productList ? { mainEntity: { "@id": `${pageUrl}#produtos` } } : {}),
+          ...(schemaProductList ? { mainEntity: { "@id": `${pageUrl}#produtos` } } : {}),
         },
-        ...(productList ? [productList] : []),
+        ...(schemaProductList ? [schemaProductList] : []),
         {
           "@type": "BreadcrumbList",
           "@id": `${pageUrl}#trilha`,
@@ -69,7 +78,7 @@ export default function ProductsPage() {
         },
       ],
     };
-  }, []);
+  }, [productList]);
 
   useStructuredData("product-catalog", structuredData);
 
@@ -97,8 +106,8 @@ export default function ProductsPage() {
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
-    const list = PRODUCTS.filter((product) => {
-      const matchCurl = curl === "todos" || product.curls.includes(curl);
+    const list = productList.filter((product) => {
+      const matchCurl = curl === "todos" || (product.curls ?? []).includes(curl);
       const matchBrand = brand === "todas" || product.brand === brand;
       const matchTerm =
         !term ||
@@ -115,7 +124,7 @@ export default function ProductsPage() {
       return [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     }
     return [...list].sort((a, b) => Number(b.featured) - Number(a.featured));
-  }, [curl, brand, sort, query]);
+  }, [curl, brand, sort, query, productList]);
 
   const hasFilters = curl !== "todos" || brand !== "todas" || query.trim() !== "";
 
@@ -187,7 +196,7 @@ export default function ProductsPage() {
                 <i className="ri-price-tag-3-line" aria-hidden="true" />
                 <select value={brand} aria-label="Filtrar por marca" onChange={(event) => setBrand(event.currentTarget.value)}>
                   <option value="todas">Todas as marcas</option>
-                  {BRANDS.map((item) => (
+                  {brands.map((item) => (
                     <option key={item} value={item}>
                       {item}
                     </option>
@@ -214,6 +223,8 @@ export default function ProductsPage() {
             </div>
           </section>
 
+          <SupabaseState loading={loading} error={error} onRetry={reload} />
+
           {curl !== "todos" ? (
             <div className="filter-note">
               <i className="ri-scissors-line" aria-hidden="true" />
@@ -232,19 +243,20 @@ export default function ProductsPage() {
             </div>
           ) : null}
 
-          {filtered.length === 0 ? (
+          {!loading && !error && filtered.length === 0 ? (
             <div className="empty">
               <i className="ri-search-eye-line" aria-hidden="true" />
-              <h3>Nenhum produto com esses filtros</h3>
+              <h3>{productList.length ? "Nenhum produto com esses filtros" : "Ainda não há produtos publicados"}</h3>
               <p>
-                Tente outro tipo de cacho, outra marca ou limpe a busca. Se você procura algo
-                específico, escreva para a gente — a prateleira cresce com as dúvidas de quem lê.
+                {productList.length
+                  ? "Tente outro tipo de cacho, outra marca ou limpe a busca."
+                  : "Os produtos cadastrados no banco aparecerão aqui."}
               </p>
               <button type="button" className="clear-link" onClick={reset}>
-                Ver todos os produtos
+                {productList.length ? "Ver todos os produtos" : "Limpar filtros"}
               </button>
             </div>
-          ) : (
+          ) : !loading && !error ? (
             <div className="grid-products">
               {filtered.map((product) => (
                 <Link className="pcard" key={product.slug} to={`/produtos/${product.slug}`}>
@@ -276,7 +288,7 @@ export default function ProductsPage() {
                 </Link>
               ))}
             </div>
-          )}
+          ) : null}
 
           <p className="disclosure">
             <strong>Transparência:</strong> este conteúdo contém links de afiliados. Podemos receber
