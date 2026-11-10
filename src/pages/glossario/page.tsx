@@ -19,6 +19,7 @@ export default function GlossaryPage() {
   const posts = postsQuery.data ?? [];
   const curlTypes = curlTypesQuery.data ?? [];
   const letters = Array.from(new Set(terms.map((item) => item.letter).filter(Boolean))).sort();
+  const termsReady = !termsQuery.loading && !termsQuery.error;
 
   usePageMeta({
     title: "Glossário de termos capilares | Universo dos Cachos",
@@ -92,7 +93,7 @@ export default function GlossaryPage() {
 
         <div className="wrap">
           <SupabaseState
-            loading={termsQuery.loading || postsQuery.loading || curlTypesQuery.loading}
+            loading={termsQuery.loading}
             error={termsQuery.error || postsQuery.error || curlTypesQuery.error}
             onRetry={() => {
               termsQuery.reload();
@@ -141,7 +142,7 @@ export default function GlossaryPage() {
             ) : null}
           </section>
 
-          {!termsQuery.loading && !termsQuery.error && !postsQuery.loading && !postsQuery.error && !curlTypesQuery.loading && !curlTypesQuery.error && filtered.length === 0 ? (
+          {termsReady && filtered.length === 0 ? (
             <div className="empty">
               <i className="ri-book-open-line" aria-hidden="true" />
               <h3>Nenhum termo com esses filtros</h3>
@@ -153,7 +154,7 @@ export default function GlossaryPage() {
                 Ver todos os termos
               </button>
             </div>
-          ) : !termsQuery.loading && !termsQuery.error && !postsQuery.loading && !postsQuery.error && !curlTypesQuery.loading && !curlTypesQuery.error ? (
+          ) : termsReady ? (
             <div className="gloss-list">
               {filtered.map((item) => {
                 const relatedPosts = (item.postSlugs ?? [])

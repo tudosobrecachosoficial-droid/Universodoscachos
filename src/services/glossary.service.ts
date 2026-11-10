@@ -6,6 +6,7 @@ export const glossaryService = {
     const { data, error } = await getSupabaseClient()
       .from('glossary')
       .select('*')
+      .not('slug', 'is', null)
       .order('term')
 
     if (error) throw error
@@ -17,6 +18,7 @@ export const glossaryService = {
       .from('glossary')
       .select('*')
       .eq('category', category)
+      .not('slug', 'is', null)
       .order('term')
 
     if (error) throw error
