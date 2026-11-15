@@ -1,127 +1,46 @@
-# Configuração do Supabase
+# Supabase: como preparar o banco
 
-Este documento descreve como configurar o Supabase para o projeto Cachos.
+## 1. Variáveis de ambiente
 
-## 1. Criar Projeto no Supabase
+Copie `.env.example` para `.env` e preencha. Regras:
 
-1. Acesse [https://supabase.com](https://supabase.com)
-2. Crie uma conta ou faça login
-3. Clique em "New Project"
-4. Preencha:
-   - **Name**: projeto-cachos (ou o nome que preferir)
-   - **Database Password**: escolha uma senha forte
-   - **Region**: escolha a região mais próxima de você
-5. Clique em "Create new project"
-6. Aguarde o projeto ser criado (pode levar alguns minutos)
+- `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` são públicas (vão para o navegador). A segurança vem do RLS.
+- `SUPABASE_SERVICE_ROLE_KEY` é secreta: **nunca** use o prefixo `VITE_` nela, nunca a coloque no Vercel como variável do front-end e nunca a use em um painel que roda no navegador. Só os scripts locais de `scripts/` a leem.
 
-## 2. Configurar Variáveis de Ambiente
+## 2. Criar/atualizar as tabelas
 
-1. No seu projeto Supabase, vá em **Settings > API**
-2. Copie:
-   - **Project URL** (algo como `https://xyz.supabase.co`)
-   - **anon public** key (chave pública)
-3. Crie um arquivo `.env` na raiz do projeto:
-   ```bash
-   cp .env.example .env
-   ```
-4. Edite o arquivo `.env` e substitua com suas credenciais:
-   ```env
-   VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-   VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui
-   ```
-   Para importar os dados iniciais, adicione também a chave `service_role` somente ao
-   ambiente local do script:
-   ```env
-   SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key
-   ```
-   Nunca use `VITE_` nessa chave: ela não pode ser incluída no código do navegador nem
-   compartilhada em repositórios.
+Rode, **em ordem**, os arquivos de `supabase/migrations/` no SQL Editor do Supabase (ou com `supabase db push`):
 
-## 3. Criar Tabelas no Banco de Dados
+1. `…_init.sql`: tabelas, índices e RLS de leitura pública (substitui os antigos `supabase-schema*.sql`).
+2. `…_indexes.sql`: índices das consultas filtradas.
+3. `…_leads.sql`: tabela da newsletter e do contato (o visitante só consegue inserir).
+4. `…_admin_policies.sql`: escrita para o admin autenticado (veja abaixo).
 
-### Opção A: Via SQL Editor (Recomendado)
+São idempotentes: podem ser reexecutadas.
 
-1. No dashboard do Supabase, vá em **SQL Editor**
-2. Clique em "New query"
-3. Copie todo o conteúdo do arquivo `supabase-schema-fixed.sql`
-4. Cole no editor e clique em "Run"
-5. Aguarde a execução do script
+## 3. Carregar o conteúdo inicial (opcional)
 
-O arquivo `supabase-schema.sql` contém um modelo antigo e incompatível com a aplicação.
-Use `supabase-schema-fixed.sql`, que cria/atualiza as tabelas e mantém as políticas de leitura.
+```bash
+npm run db:seed     # envia os mocks de src/mocks para o banco (usa a service key)
+npm run db:check    # confere se o banco responde com a chave pública
+```
 
-## 4. Importar conteúdo inicial (opcional)
+## 4. Painel admin sem service key no navegador
 
-Se o banco ainda estiver vazio e você quiser inserir o conteúdo de demonstração dos arquivos
-`src/mocks/`, execute:
+O site só lê. Para editar, o painel deve entrar com **Supabase Auth** e o usuário precisa ter `role = admin`:
 
-1. Certifique-se de que o arquivo `.env` está configurado
-2. Execute o script de migração:
-   ```bash
-   npx tsx scripts/migrate-mocks-to-supabase.ts
-   ```
+```sql
+UPDATE auth.users
+SET raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}'
+WHERE email = 'voce@exemplo.com';
+```
 
-O script insere apenas registros ausentes por slug; registros já existentes no banco não são
-sobrescritos. Se uma migração antiga já criou registros incompletos a partir dos mocks, você pode
-definir `SUPABASE_MIGRATION_OVERWRITE=true` para preenchê-los — isso substitui os registros com os
-mesmos slugs pelo conteúdo dos mocks. Não use essa opção em conteúdo final que precise preservar.
+A migration `…_admin_policies.sql` libera escrita (e leitura de rascunhos) só para esse papel. Depois disso o painel usa a chave pública + login, e a service key sai do código dele.
 
-## 5. Atualizar o Código para Usar o Supabase
+## 5. Ler newsletter e mensagens
 
-O catálogo, as categorias, o blog, a página inicial e as páginas de detalhe leem os
-registros publicados diretamente do Supabase. Os serviços ficam em `src/services/`.
+Os envios caem na tabela `leads` (`kind` = `newsletter` ou `contact`). Leia pelo painel do Supabase ou pelo admin autenticado.
 
-## 6. Estrutura das Tabelas
+## Opcional: `posts.date` como data de verdade
 
-### product_categories
-- Categorias de produtos (shampoos, condicionadores, etc.)
-
-### products
-- Produtos com nome, descrição, preço, imagem, categoria
-
-### posts
-- Posts do blog com título, conteúdo, autor, imagem
-
-### curl_types
-- Tipos de cachos (2A, 2B, 2C, 3A, 3B, 3C, 4A, 4B, 4C)
-
-### glossary
-- Termos do glossário com definições
-
-### quiz_questions
-- Perguntas do quiz com opções e respostas
-
-### routines
-- Rotinas de cuidados para cada tipo de cacho
-
-### care_tips
-- Dicas de cuidados organizadas por categoria
-
-## 7. Segurança (RLS)
-
-O schema já inclui políticas de Row Level Security (RLS) que:
-- Permitem leitura pública do conteúdo; posts não publicados ficam restritos
-- Não permitem escrita pública; a chave `service_role` fica reservada aos scripts locais
-
-## 8. Storage (Opcional)
-
-Para armazenar imagens, você pode configurar o Storage do Supabase:
-
-1. Vá em **Storage** no dashboard
-2. Crie um bucket chamado `images`
-3. Configure as permissões do bucket para leitura pública
-4. Atualize as URLs das imagens nos dados para usar o Storage
-
-## Solução de Problemas
-
-### Erro: "Supabase não configurado"
-- Verifique se o arquivo `.env` existe e está configurado corretamente
-- Reinicie o servidor de desenvolvimento após criar o arquivo `.env`
-
-### Erro: "relation does not exist"
-- Execute o script `supabase-schema-fixed.sql` no SQL Editor
-- Verifique se todas as tabelas foram criadas no dashboard
-
-### Erro de permissão
-- Verifique as políticas RLS no dashboard
-- Certifique-se de que as políticas "Allow public read access" estão ativadas
+`supabase/optional/posts-date-as-date.sql`. Leia o aviso no topo do arquivo antes de rodar.

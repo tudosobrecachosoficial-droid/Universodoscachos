@@ -4,38 +4,33 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#59514c" />
     <title>Universo dos Cachos</title>
     <meta name="description" content="Seu universo de cuidados, descobertas e amor pelos cachos. Para cabelos ondulados, cacheados e crespos, de todas as idades." />
 
-    <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-PXGZP4SG"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-    </script>
+    <!-- Tag Manager and ads are NOT loaded here: they start only after the visitor
+         accepts cookies (see src/lib/tracking.ts). -->
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icon-large.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/icon-large.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph / Twitter. Page-specific values (with absolute URLs) are set by
+         the build-time prerender and by src/hooks/usePageMeta.ts. -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Universo dos Cachos" />
     <meta property="og:description" content="Seu universo de cuidados, descobertas e amor pelos cachos." />
-    <meta property="og:image" content="/icon-large.png" />
-
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Universo dos Cachos" />
     <meta name="twitter:description" content="Seu universo de cuidados, descobertas e amor pelos cachos." />
-    <meta name="twitter:image" content="/icon-large.png" />
 
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
 </head>
 
 <body>
     <div id="root"></div>
+    <noscript>O Universo dos Cachos precisa de JavaScript para exibir a navegação completa.</noscript>
     <script type="module" src="/src/main.tsx"></script>
 </body>
 
