@@ -6,6 +6,25 @@ type PricedProduct = {
   price: string | null;
   promoPrice: string | null;
   image: string;
+  updatedAt?: string | null;
+};
+
+/** How long a price printed on the page may be declared as an Offer. */
+export const PRICE_VALID_DAYS = 30;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const parseDate = (value: string | null | undefined): number | null => {
+  if (!value) return null;
+  const time = Date.parse(value.length === 10 ? `${value}T12:00:00Z` : value);
+  return Number.isFinite(time) ? time : null;
+};
+
+/** True when `value` (a date) is at most `days` days old at `now`. */
+export const isFreshDate = (value: string | null | undefined, days: number, now: number = Date.now()) => {
+  const time = parseDate(value);
+  if (time === null) return false;
+  return now - time <= days * DAY_MS && time - now <= DAY_MS;
 };
 
 /**
@@ -22,6 +41,26 @@ export const parsePrice = (value: string | null | undefined): string | null => {
   return amount.toFixed(2);
 };
 
+/**
+ * An Offer is only declared while the price is recent. The page prints the
+ * price with its date, and markup must not keep claiming a value that may have
+ * changed in the store. Availability is never declared: the site cannot know it.
+ */
+const buildOffer = (product: PricedProduct, url: string, extra: Record<string, unknown> = {}) => {
+  const amount = parsePrice(product.promoPrice || product.price);
+  if (!amount || !isFreshDate(product.updatedAt, PRICE_VALID_DAYS)) return null;
+
+  const updated = parseDate(product.updatedAt) as number;
+  return {
+    "@type": "Offer",
+    price: amount,
+    priceCurrency: "BRL",
+    priceValidUntil: new Date(updated + PRICE_VALID_DAYS * DAY_MS).toISOString().slice(0, 10),
+    url,
+    ...extra,
+  };
+};
+
 type ProductListOptions = {
   origin: string;
   pageUrl: string;
@@ -30,11 +69,7 @@ type ProductListOptions = {
   description?: string;
 };
 
-/**
- * Builds an ItemList of Product entries for a shelf of products.
- * Only products with a published price receive an Offer, so the markup never
- * claims a price the page does not show.
- */
+/** Builds an ItemList of Product entries for a shelf of products. */
 export function buildProductList({
   origin,
   pageUrl,
@@ -52,8 +87,8 @@ export function buildProductList({
     numberOfItems: products.length,
     itemListOrder: "https://schema.org/ItemListOrderAscending",
     itemListElement: products.map((product, index) => {
-      const amount = parsePrice(product.promoPrice || product.price);
       const url = `${origin}/produtos/${product.slug}`;
+      const offer = buildOffer(product, url);
 
       return {
         "@type": "ListItem",
@@ -65,43 +100,24 @@ export function buildProductList({
           image: [product.image],
           url,
           brand: { "@type": "Brand", name: product.brand },
-          ...(amount
-            ? {
-                offers: {
-                  "@type": "Offer",
-                  price: amount,
-                  priceCurrency: "BRL",
-                  availability: "https://schema.org/InStock",
-                  url,
-                },
-              }
-            : {}),
+          ...(offer ? { offers: offer } : {}),
         },
       };
     }),
   };
 }
 
-type SingleProduct = {
-  slug: string;
-  name: string;
-  brand: string;
-  summary: string;
-  price: string | null;
-  promoPrice: string | null;
-  image: string;
-  gallery?: string[];
+type SingleProduct = PricedProduct & {
+  gallery?: string[] | null;
   categoryLabel?: string;
 };
 
-/**
- * Builds the schema.org Product node for a catalogue detail page.
- * An Offer is only declared when the page actually shows a price, so the
- * markup never claims a value that the reader cannot see.
- */
+/** Builds the schema.org Product node for a catalogue detail page. */
 export function buildProductNode(product: SingleProduct, origin: string) {
-  const amount = parsePrice(product.promoPrice || product.price);
   const url = `${origin}/produtos/${product.slug}`;
+  const offer = buildOffer(product, url, {
+    seller: { "@type": "Organization", name: "Universo dos Cachos", url: `${origin}/` },
+  });
 
   return {
     "@type": "Product",
@@ -112,21 +128,17 @@ export function buildProductNode(product: SingleProduct, origin: string) {
     url,
     ...(product.categoryLabel ? { category: product.categoryLabel } : {}),
     brand: { "@type": "Brand", name: product.brand },
-    ...(amount
-      ? {
-          offers: {
-            "@type": "Offer",
-            price: amount,
-            priceCurrency: "BRL",
-            availability: "https://schema.org/InStock",
-            url,
-            seller: {
-              "@type": "Organization",
-              name: "Universo dos Cachos",
-              url: `${origin}/`,
-            },
-          },
-        }
-      : {}),
+    ...(offer ? { offers: offer } : {}),
   };
+}
+
+/** Store links that point at a store's home page carry no affiliate identifier. */
+export function isPlaceholderAffiliateUrl(value: string | null | undefined): boolean {
+  if (!value || !value.trim()) return true;
+  try {
+    const url = new URL(value);
+    return (url.pathname === "/" || url.pathname === "") && url.search === "";
+  } catch {
+    return true;
+  }
 }

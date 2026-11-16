@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.webp";
+import { openConsentSettings } from "@/lib/consent";
 
 export default function SiteFooter() {
   return (
@@ -7,7 +8,7 @@ export default function SiteFooter() {
       <div className="footer-top">
         <div>
           <p className="footer-mark">
-            <img src={logo} alt="Unicachos - Universo dos Cachos" />
+            <img loading="lazy" decoding="async" src={logo} alt="Unicachos - Universo dos Cachos" />
           </p>
           <p className="footer-slogan">
             Seu universo de cuidados, descobertas e amor pelos cachos. Para cabelos ondulados,
@@ -118,6 +119,10 @@ export default function SiteFooter() {
           <Link to="/politica-de-privacidade#cookies" style={{ color: "inherit", textDecoration: "underline" }}>
             Cookies e privacidade
           </Link>
+          {" · "}
+          <button type="button" className="cookie-prefs" onClick={openConsentSettings}>
+            Preferências de cookies
+          </button>
           {" · "}
           <Link to="/transparencia" style={{ color: "inherit", textDecoration: "underline" }}>
             Como ganhamos com indicações

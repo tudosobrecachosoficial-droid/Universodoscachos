@@ -19,7 +19,7 @@ const GUIDE_DESCRIPTION =
 
 export default function CurlTypesPage() {
   const loadCurls = useCallback(() => curlTypesService.getAll(), []);
-  const { data: curlTypes, error, loading, reload } = useSupabaseData(loadCurls);
+  const { data: curlTypes, error, loading, reload } = useSupabaseData(loadCurls, "curls:all");
   const types = curlTypes ?? [];
   usePageMeta({
     title: GUIDE_TITLE,
@@ -155,7 +155,7 @@ export default function CurlTypesPage() {
                         to={`/tipos-de-cachos/${type.slug}`}
                         aria-label={`Ler o guia do ${type.name}`}
                       >
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={type.image}
                           alt={type.imageAlt}
                           width={900}

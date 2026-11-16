@@ -20,7 +20,7 @@ const SORTS = [
 
 export default function ProductsPage() {
   const loadProducts = useCallback(() => productsService.getAll(), []);
-  const { data: products, error, loading, reload } = useSupabaseData(loadProducts);
+  const { data: products, error, loading, reload } = useSupabaseData(loadProducts, "products:all");
   const productList = products ?? [];
   const brands = Array.from(new Set(productList.map((product) => product.brand))).sort((a, b) =>
     a.localeCompare(b),
@@ -261,7 +261,7 @@ export default function ProductsPage() {
               {filtered.map((product) => (
                 <Link className="pcard" key={product.slug} to={`/produtos/${product.slug}`}>
                   <div className="pcard-media">
-                    <img src={product.image} alt={`${product.name} da marca ${product.brand}`} width={900} height={900} />
+                    <img loading="lazy" decoding="async" src={product.image} alt={`${product.name} da marca ${product.brand}`} width={900} height={900} />
                     <span className="pcard-tag">{product.categoryLabel}</span>
                   </div>
                   <div className="pcard-body">

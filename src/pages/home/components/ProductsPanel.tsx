@@ -8,7 +8,7 @@ import SupabaseState from "@/components/feature/SupabaseState";
 
 export default function ProductsPanel() {
   const loadProducts = useCallback(() => productsService.getFeatured(), []);
-  const { data: shelf, error, loading, reload } = useSupabaseData(loadProducts);
+  const { data: shelf, error, loading, reload } = useSupabaseData(loadProducts, "products:featured");
 
   return (
     <Panel

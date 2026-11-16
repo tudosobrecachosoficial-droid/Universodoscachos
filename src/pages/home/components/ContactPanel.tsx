@@ -1,14 +1,8 @@
 import { useState, type FormEvent } from "react";
 import Panel from "@/pages/home/components/Panel";
+import { leadsService } from "@/services";
 
-const SUBMIT_ADDR = "https://readdy.ai/api/form/dbm6v5753qvvv5m6c13g";
 const MAX_MESSAGE = 500;
-
-type FormResponse = {
-  code?: string;
-  message?: string;
-  meta?: { message?: string; detail?: string };
-};
 
 type Status = "idle" | "sending" | "success" | "error";
 
@@ -31,48 +25,23 @@ export default function ContactPanel() {
       return;
     }
 
-    const body = new URLSearchParams();
-    data.forEach((value, key) => {
-      if (key === "website_alt") return;
-      body.append(key, String(value));
-    });
-
     setStatus("sending");
     setFeedback("");
 
     try {
-      const response = await fetch(SUBMIT_ADDR, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
+      await leadsService.sendContact({
+        name: String(data.get("name") ?? ""),
+        email: String(data.get("email") ?? ""),
+        curlType: String(data.get("tipo_de_cacho") ?? ""),
+        message: String(data.get("message") ?? "").slice(0, MAX_MESSAGE),
       });
-      const responseText = await response.text();
-      let parsed: FormResponse | null = null;
-      try {
-        parsed = JSON.parse(responseText) as FormResponse;
-      } catch {
-        parsed = null;
-      }
-      const serverMessage =
-        parsed?.meta?.message || parsed?.meta?.detail || parsed?.message || responseText;
-      const succeeded = response.ok && parsed?.code === "OK";
-
-      if (succeeded) {
-        setStatus("success");
-        setFeedback("Recebemos sua mensagem. Respondemos com calma, em até dois dias.");
-        form.reset();
-        setMessageLength(0);
-      } else {
-        const readable =
-          typeof serverMessage === "string" && serverMessage.trim() && serverMessage.length <= 180
-            ? serverMessage
-            : "Não conseguimos enviar agora. Tente novamente em instantes.";
-        setStatus("error");
-        setFeedback(readable);
-      }
+      setStatus("success");
+      setFeedback("Recebemos sua mensagem. Respondemos com calma, em até dois dias.");
+      form.reset();
+      setMessageLength(0);
     } catch {
       setStatus("error");
-      setFeedback("Não conseguimos enviar agora. Verifique sua conexão e tente novamente.");
+      setFeedback("Não conseguimos enviar agora. Verifique os campos e tente novamente em instantes.");
     }
   };
 
@@ -96,7 +65,7 @@ export default function ContactPanel() {
           Conte o seu tipo de cacho e a rotina que você já usa. A gente responde de pessoa para pessoa.
         </p>
 
-        <form className="form-card" id="form-contato-udc" data-readdy-form onSubmit={handleSubmit}>
+        <form className="form-card" id="form-contato-udc" onSubmit={handleSubmit}>
           <div className="field-row">
             <div className="field" data-reveal>
               <label htmlFor="contact-name">Seu nome</label>

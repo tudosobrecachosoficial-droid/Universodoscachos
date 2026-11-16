@@ -20,10 +20,10 @@ export default function RoutinesPage() {
   const loadCurls = useCallback(() => curlTypesService.getAll(), []);
   const loadProducts = useCallback(() => productsService.getAll(), []);
   const loadPosts = useCallback(() => postsService.getAll(), []);
-  const routineQuery = useSupabaseData(loadRoutine);
-  const curlQuery = useSupabaseData(loadCurls);
-  const productsQuery = useSupabaseData(loadProducts);
-  const postsQuery = useSupabaseData(loadPosts);
+  const routineQuery = useSupabaseData(loadRoutine, "routines:all");
+  const curlQuery = useSupabaseData(loadCurls, "curls:all");
+  const productsQuery = useSupabaseData(loadProducts, "products:all");
+  const postsQuery = useSupabaseData(loadPosts, "posts:all");
   const routineWeek = routineQuery.data ?? [];
   const curlTypes = curlQuery.data ?? [];
   const allProducts = productsQuery.data ?? [];
@@ -95,7 +95,7 @@ export default function RoutinesPage() {
               </div>
 
               <div className="curl-hero-media">
-                <img
+                <img loading="lazy" decoding="async"
                   src="https://readdy.ai/api/search-image?query=Editorial%20flat%20lay%20of%20an%20unlabeled%20cream%20hair%20mask%20jar%2C%20a%20wooden%20comb%20and%20a%20linen%20towel%20on%20a%20warm%20beige%20plaster%20surface%2C%20soft%20morning%20daylight%2C%20warm%20nude%20and%20copper%20tones%2C%20calm%20minimal%20beauty%20still%20life%2C%20no%20text%20no%20logos&width=900&height=1125&seq=udc-routine-hero-2026&orientation=portrait"
                   alt="Composição com máscara capilar, pente de madeira e toalha de linho sobre superfície de gesso quente."
                   width={900}
@@ -250,7 +250,7 @@ export default function RoutinesPage() {
               {products.map((product) => (
                 <Link className="pcard" key={product.slug} to={`/produtos/${product.slug}`}>
                   <div className="pcard-media">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={product.image}
                       alt={`${product.name} da marca ${product.brand}`}
                       width={900}
@@ -308,7 +308,7 @@ export default function RoutinesPage() {
                 {posts.map((post) => (
                   <Link className="post-card" key={post.slug} to={`/blog/${post.slug}`}>
                     <div className="post-card-media">
-                      <img src={post.image} alt={post.title} width={1600} height={1000} />
+                      <img loading="lazy" decoding="async" src={post.image} alt={post.title} width={1600} height={1000} />
                     </div>
                     <p className="post-meta">
                       <span className="post-cat">{post.category}</span>

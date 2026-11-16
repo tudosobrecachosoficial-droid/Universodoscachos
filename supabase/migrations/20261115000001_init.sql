@@ -1,3 +1,6 @@
+-- Schema completo do Universo dos Cachos (substitui supabase-schema.sql e supabase-schema-fixed.sql).
+-- Idempotente: pode rodar em um banco que já tem as tabelas.
+
 -- Habilitar extensão para UUIDs
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 

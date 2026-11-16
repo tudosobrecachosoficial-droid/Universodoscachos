@@ -17,14 +17,14 @@ const SECTIONS: LegalSection[] = [
     list: [
       "Newsletter: seu e-mail, a data da inscrição e o registro do seu consentimento.",
       "Formulário de contato: nome, e-mail, tipo de cacho (opcional) e a mensagem que você escreve.",
-      "Navegação: dados técnicos agregados, como páginas mais lidas e cliques em links de produtos. Não usamos esses registros para identificar pessoas.",
+      "Navegação e publicidade: se você aceitar os cookies, ferramentas de medição e de anúncios (como o Google Tag Manager e o Google AdSense) recebem dados técnicos do seu navegador, como páginas visitadas, cliques e identificadores de cookie. Se você escolher só o essencial, essas ferramentas não são carregadas.",
     ],
   },
   {
     heading: "Para que usamos",
     paragraphs: [
       "O e-mail da newsletter é usado exclusivamente para enviar as cartas semanais do portal. O e-mail de contato serve para responder à sua mensagem. Nenhum dos dois alimenta listas de terceiros, e não fazemos contato comercial sem pedido.",
-      "Os registros de navegação servem para entender quais assuntos interessam a quem lê — assim decidimos o que escrever e quais categorias de produto merecem mais atenção.",
+      "Os dados de medição servem para entender quais assuntos interessam a quem lê — assim decidimos o que escrever e quais categorias de produto merecem mais atenção. Os dados de publicidade permitem exibir anúncios no blog, que ajudam a manter o portal gratuito.",
     ],
   },
   {
@@ -37,9 +37,9 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Cookies",
     paragraphs: [
-      "Cookies são pequenos arquivos guardados no seu navegador. Este portal usa dois tipos: os essenciais, que mantêm preferências básicas (como a sua própria escolha no aviso de cookies), e os de medição, que contam visitas de forma agregada para entendermos o alcance dos textos.",
-      "Não usamos cookies para publicidade comportamental nem para rastrear você em outros sites. Você pode recusar os cookies de medição no aviso exibido na primeira visita e continuar navegando normalmente.",
-      "Se quiser apagar o que já está guardado, limpe os dados do site nas configurações do seu navegador. A escolha será solicitada novamente na próxima visita.",
+      "Cookies são pequenos arquivos guardados no seu navegador. Este portal usa três tipos: os essenciais, que mantêm preferências básicas (como a sua própria escolha no aviso de cookies); os de medição, que contam visitas para entendermos o alcance dos textos; e os de publicidade, usados por parceiros como o Google para exibir e medir anúncios, que podem ser personalizados.",
+      "Os cookies de medição e de publicidade só são carregados depois que você clica em “Aceitar” no aviso. Quem escolhe “Só o essencial” navega normalmente, sem esses cookies e sem anúncios.",
+      "Você pode mudar a escolha a qualquer momento em “Preferências de cookies”, no rodapé. Retirar o consentimento recarrega a página para interromper esses serviços. Para apagar o que já está guardado, limpe os dados do site nas configurações do navegador. Os parceiros de publicidade têm políticas próprias, e o Google explica como usa dados em seus serviços na página de privacidade e termos do próprio Google.",
     ],
   },
   {
@@ -53,13 +53,13 @@ const SECTIONS: LegalSection[] = [
     heading: "Links de afiliados e lojas parceiras",
     paragraphs: [
       "Alguns links de produtos levam a lojas parceiras e podem gerar comissão para o portal, sem custo adicional para você. Ao clicar, você passa a estar sujeito à política de privacidade e aos cookies daquela loja.",
-      "Registramos o clique no nosso lado (produto, data, página de origem) para entender o que é útil. Não recebemos da loja o seu nome, endereço ou dados de pagamento.",
+      "Quando você aceita os cookies de medição, os cliques em links de produtos podem ser contados pelas ferramentas de medição, para entendermos o que é útil. Não recebemos da loja o seu nome, endereço ou dados de pagamento.",
     ],
   },
   {
     heading: "Compartilhamento e segurança",
     paragraphs: [
-      "Não vendemos, alugamos ou cedemos dados pessoais. O compartilhamento acontece apenas com fornecedores estritamente necessários à operação do portal — hospedagem, envio de e-mail e formulários — e sempre limitado ao necessário.",
+      "Não vendemos, alugamos ou cedemos dados pessoais por conta própria. O compartilhamento acontece apenas com fornecedores estritamente necessários à operação do portal — hospedagem, banco de dados, envio de e-mail, medição e publicidade — e sempre limitado ao necessário. Se você aceitar os cookies de publicidade, os parceiros de anúncios passam a tratar os dados coletados por eles.",
       "Adotamos medidas técnicas razoáveis para proteger as informações, incluindo acesso restrito ao painel administrativo e controle de permissões. Nenhum sistema é totalmente imune, mas tratamos incidentes com seriedade e comunicamos quando houver risco relevante.",
     ],
   },
@@ -105,10 +105,10 @@ export default function PrivacyPage() {
         </>
       }
       subtitle="Sem letras miúdas: quais informações o portal recebe, para que servem, por quanto tempo ficam e como pedir a exclusão."
-      updated="5 de novembro de 2026"
+      updated="15 de novembro de 2026"
       intro="Este portal existe para informar, não para coletar. Ainda assim, newsletter, formulário e medição de leitura envolvem dados — e é justo que você saiba exatamente o que acontece com eles."
       sections={SECTIONS}
-      callout="Resumo em uma linha: guardamos apenas o que você decide enviar, não vendemos nada disso e apagamos quando você pedir."
+      callout="Resumo em uma linha: guardamos o que você decide enviar, medição e anúncios só entram se você aceitar, e apagamos seus dados quando você pedir."
       asideLink={{ label: "Transparência de afiliados", to: "/transparencia" }}
     />
   );

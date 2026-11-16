@@ -9,7 +9,7 @@ import { formatShortDate } from "@/utils/date";
 
 export default function ArticlesPanel() {
   const loadPosts = useCallback(() => postsService.getFeatured(3), []);
-  const { data: posts, error, loading, reload } = useSupabaseData(loadPosts);
+  const { data: posts, error, loading, reload } = useSupabaseData(loadPosts, "posts:featured:3");
 
   return (
     <Panel

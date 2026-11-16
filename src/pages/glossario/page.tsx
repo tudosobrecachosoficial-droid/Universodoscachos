@@ -12,9 +12,9 @@ export default function GlossaryPage() {
   const loadTerms = useCallback(() => glossaryService.getAll(), []);
   const loadPosts = useCallback(() => postsService.getAll(), []);
   const loadCurlTypes = useCallback(() => curlTypesService.getAll(), []);
-  const termsQuery = useSupabaseData(loadTerms);
-  const postsQuery = useSupabaseData(loadPosts);
-  const curlTypesQuery = useSupabaseData(loadCurlTypes);
+  const termsQuery = useSupabaseData(loadTerms, "glossary:all");
+  const postsQuery = useSupabaseData(loadPosts, "posts:all");
+  const curlTypesQuery = useSupabaseData(loadCurlTypes, "curls:all");
   const terms = termsQuery.data ?? [];
   const posts = postsQuery.data ?? [];
   const curlTypes = curlTypesQuery.data ?? [];

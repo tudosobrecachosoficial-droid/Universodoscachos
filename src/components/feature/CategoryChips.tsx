@@ -14,7 +14,7 @@ type Props = {
  */
 export default function CategoryChips({ active }: Props) {
   const loadCategories = useCallback(() => productsService.getCategories(), []);
-  const { data: categories, error, loading, reload } = useSupabaseData(loadCategories);
+  const { data: categories, error, loading, reload } = useSupabaseData(loadCategories, "categories:all");
 
   return (
     categories ? (

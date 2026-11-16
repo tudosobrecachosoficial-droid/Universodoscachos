@@ -2,7 +2,6 @@ import type { RouteObject } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import Home from "../pages/home/page";
 import ProductsPage from "../pages/produtos/page";
-import ProductCategoryPage from "../pages/produtos/categoria/page";
 import ProductDetailPage from "../pages/produtos/detail/page";
 import BlogPage from "../pages/blog/page";
 import ArticlePage from "../pages/blog/detail/page";
@@ -17,16 +16,6 @@ import SiteIndexPage from "../pages/mapa-do-site/page";
 import AboutEditorialPage from "../pages/sobre-a-redacao/page";
 import PrivacyPage from "../pages/legal/privacy/page";
 import TransparencyPage from "../pages/legal/transparency/page";
-import { PRODUCT_CATEGORIES } from "../mocks/products";
-
-/* Each catalogue category gets its own address (/produtos/infantil, /produtos/oleos…)
-   so it can be linked, shared and indexed separately from the full catalogue. */
-const categoryRoutes: RouteObject[] = PRODUCT_CATEGORIES.filter(
-  (item) => item.slug !== "todos",
-).map((item) => ({
-  path: `/produtos/${item.slug}`,
-  element: <ProductCategoryPage slug={item.slug} />,
-}));
 
 const routes: RouteObject[] = [
   {
@@ -37,7 +26,8 @@ const routes: RouteObject[] = [
     path: "/produtos",
     element: <ProductsPage />,
   },
-  ...categoryRoutes,
+  /* One address pattern serves products and categories: the page looks the slug up in the
+     database, so a category created in the admin panel works without a deploy. */
   {
     path: "/produtos/:slug",
     element: <ProductDetailPage />,

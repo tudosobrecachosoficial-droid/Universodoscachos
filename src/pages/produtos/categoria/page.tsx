@@ -7,6 +7,7 @@ import { productsService } from "@/services";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import SupabaseState from "@/components/feature/SupabaseState";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { categoryMeta } from "@/content/pageMeta";
 
 type Props = {
   slug: string;
@@ -15,19 +16,14 @@ type Props = {
 export default function ProductCategoryPage({ slug }: Props) {
   const loadCategory = useCallback(() => productsService.getCategoryBySlug(slug), [slug]);
   const loadProducts = useCallback(() => productsService.getByCategory(slug), [slug]);
-  const categoryQuery = useSupabaseData(loadCategory);
-  const productsQuery = useSupabaseData(loadProducts);
+  const categoryQuery = useSupabaseData(loadCategory, `category:${slug}`);
+  const productsQuery = useSupabaseData(loadProducts, `category-products:${slug}`);
   const category = categoryQuery.data;
   const label = category?.label ?? "Categoria";
   const intro = category?.intro ?? "";
 
-  usePageMeta({
-    title: `${label} para cabelos naturais | Universo dos Cachos`,
-    description:
-      intro ||
-      `Seleção de ${label.toLowerCase()} recomendados para cabelos ondulados, cacheados e crespos.`,
-    path: `/produtos/${slug}`,
-  });
+  const meta = categoryMeta({ slug, label, intro });
+  usePageMeta({ ...meta, image: category?.image || undefined });
 
   const products = [...(productsQuery.data ?? [])].sort(
     (a, b) => Number(b.featured) - Number(a.featured),
@@ -62,7 +58,7 @@ export default function ProductCategoryPage({ slug }: Props) {
               </div>
               {category?.image ? (
                 <div className="cat-hero-media">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={category.image}
                     alt={`Seleção de ${label.toLowerCase()} do Universo dos Cachos`}
                     width={900}
@@ -113,7 +109,7 @@ export default function ProductCategoryPage({ slug }: Props) {
               {products.map((product) => (
                 <Link className="pcard" key={product.slug} to={`/produtos/${product.slug}`}>
                   <div className="pcard-media">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={product.image}
                       alt={`${product.name} da marca ${product.brand}`}
                       width={900}

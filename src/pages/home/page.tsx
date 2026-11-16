@@ -2,6 +2,7 @@ import { usePageMotion } from "@/hooks/usePageMotion";
 import { usePointerParallax } from "@/hooks/usePointerParallax";
 import { useHashScroll } from "@/hooks/useHashScroll";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { HOME_META } from "@/content/pageMeta";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import FilmChapter from "@/pages/home/components/FilmChapter";
@@ -16,12 +17,7 @@ export default function Home() {
   usePointerParallax();
   usePageMotion();
   useHashScroll();
-  usePageMeta({
-    title: "Universo dos Cachos — cuidados, rotinas e produtos para cabelos naturais",
-    description:
-      "Portal sobre cabelos ondulados, cacheados e crespos: guia de curvaturas, rotinas de cuidado, blog com artigos e produtos recomendados para todas as idades.",
-    path: "/",
-  });
+  usePageMeta(HOME_META);
 
   return (
     <main>

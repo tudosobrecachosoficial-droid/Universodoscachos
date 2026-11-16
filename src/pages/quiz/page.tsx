@@ -18,9 +18,22 @@ const QUIZ_DESCRIPTION =
 export default function QuizPage() {
   const loadQuestions = useCallback(() => quizService.getAll(), []);
   const loadCurlTypes = useCallback(() => curlTypesService.getAll(), []);
-  const { data: loadedQuestions, error, loading, reload } = useSupabaseData(loadQuestions);
-  const curlQuery = useSupabaseData(loadCurlTypes);
-  const questions = loadedQuestions ?? [];
+  const { data: loadedQuestions, error, loading, reload } = useSupabaseData(loadQuestions, "quiz:all");
+  const curlQuery = useSupabaseData(loadCurlTypes, "curls:all");
+  /* A question edited outside the expected format would break the whole quiz, so it is skipped. */
+  const questions = useMemo(
+    () =>
+      (loadedQuestions ?? []).filter(
+        (question) =>
+          Array.isArray(question.options) &&
+          question.options.length > 0 &&
+          question.options.every(
+            (option) =>
+              option && typeof option.id === "string" && option.scores && typeof option.scores === "object",
+          ),
+      ),
+    [loadedQuestions],
+  );
   const curlTypes = curlQuery.data ?? [];
   usePageMeta({
     title: QUIZ_TITLE,
@@ -162,7 +175,7 @@ export default function QuizPage() {
                 <div className="quiz-card">
                   <div className="quiz-result">
                     <div className="quiz-result-media">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={primary.image}
                         alt={primary.imageAlt}
                         width={900}

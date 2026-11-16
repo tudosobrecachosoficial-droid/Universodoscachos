@@ -1,12 +1,5 @@
 import { useState, type FormEvent } from "react";
-
-const SUBMIT_ADDR = "https://readdy.ai/api/form/dbm7405umrrn79g3ib80";
-
-type NewsResponse = {
-  code?: string;
-  message?: string;
-  meta?: { message?: string; detail?: string };
-};
+import { leadsService } from "@/services";
 
 type Status = "idle" | "sending" | "success" | "error";
 
@@ -27,47 +20,19 @@ export default function NewsletterBlock() {
       return;
     }
 
-    const body = new URLSearchParams();
-    data.forEach((value, key) => {
-      if (key === "company_alt") return;
-      body.append(key, String(value));
-    });
+    const email = String(data.get("email") ?? "").trim();
 
     setStatus("sending");
     setFeedback("");
 
     try {
-      const response = await fetch(SUBMIT_ADDR, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
-      });
-      const responseText = await response.text();
-      let parsed: NewsResponse | null = null;
-      try {
-        parsed = JSON.parse(responseText) as NewsResponse;
-      } catch {
-        parsed = null;
-      }
-      const serverMessage =
-        parsed?.meta?.message || parsed?.meta?.detail || parsed?.message || responseText;
-      const succeeded = response.ok && parsed?.code === "OK";
-
-      if (succeeded) {
-        setStatus("success");
-        setFeedback("Inscrição confirmada. Você pode sair da lista quando quiser.");
-        form.reset();
-      } else {
-        const readable =
-          typeof serverMessage === "string" && serverMessage.trim() && serverMessage.length <= 180
-            ? serverMessage
-            : "Não conseguimos registrar agora. Tente novamente em instantes.";
-        setStatus("error");
-        setFeedback(readable);
-      }
+      await leadsService.subscribe(email);
+      setStatus("success");
+      setFeedback("Inscrição registrada. Você pode sair da lista quando quiser.");
+      form.reset();
     } catch {
       setStatus("error");
-      setFeedback("Não conseguimos registrar agora. Verifique sua conexão e tente novamente.");
+      setFeedback("Não conseguimos registrar agora. Verifique o e-mail e tente novamente em instantes.");
     }
   };
 
@@ -87,7 +52,7 @@ export default function NewsletterBlock() {
           </p>
         </div>
 
-        <form className="news-form" id="form-newsletter-udc" data-readdy-form onSubmit={handleSubmit}>
+        <form className="news-form" id="form-newsletter-udc" onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="news-email">Seu e-mail</label>
             <input

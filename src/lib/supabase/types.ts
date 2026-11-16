@@ -24,8 +24,8 @@ export interface Product {
   updatedAt: string
   summary: string
   image: string
-  gallery: string[]
-  sections: { heading: string; paragraphs: string[] }[]
+  gallery: string[] | null
+  sections: { heading: string; paragraphs: string[] }[] | null
   created_at: string
 }
 
@@ -123,4 +123,18 @@ export interface CareTip {
   text?: string
   image?: string
   created_at: string
+}
+
+/** Listing shape: everything except the long article/product body. */
+export type PostSummary = Omit<Post, 'sections'>
+export type ProductSummary = Omit<Product, 'sections'>
+
+export type LeadKind = 'newsletter' | 'contact'
+
+export interface LeadInput {
+  kind: LeadKind
+  email: string
+  name?: string
+  curl_type?: string
+  message?: string
 }

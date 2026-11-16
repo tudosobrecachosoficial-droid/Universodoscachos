@@ -3,22 +3,17 @@ import { Link } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import NewsletterBlock from "@/components/feature/NewsletterBlock";
-import { POST_CATEGORIES } from "@/mocks/posts";
 import { postsService } from "@/services";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import SupabaseState from "@/components/feature/SupabaseState";
 import { formatShortDate } from "@/utils/date";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { BLOG_META } from "@/content/pageMeta";
 
 export default function BlogPage() {
   const loadPosts = useCallback(() => postsService.getAll(), []);
-  const { data: posts, error, loading, reload } = useSupabaseData(loadPosts);
-  usePageMeta({
-    title: "Blog do Universo dos Cachos — cuidados, rotinas e tipos de cachos",
-    description:
-      "Artigos sobre cuidados com cabelos ondulados, cacheados e crespos: rotinas, cronograma capilar, finalização, day after e cachos infantis.",
-    path: "/blog",
-  });
+  const { data: posts, error, loading, reload } = useSupabaseData(loadPosts, "posts:all");
+  usePageMeta(BLOG_META);
 
   const [category, setCategory] = useState("todos");
 
@@ -26,6 +21,19 @@ export default function BlogPage() {
     () => [...(posts ?? [])].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "")),
     [posts],
   );
+
+  /* Categories come from the published posts, so a new category created in the
+     admin panel shows up here without touching the code. */
+  const categories = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const post of posts ?? []) {
+      if (post.categorySlug && !seen.has(post.categorySlug)) seen.set(post.categorySlug, post.category);
+    }
+    return [
+      { slug: "todos", label: "Todos os textos" },
+      ...[...seen].map(([slug, label]) => ({ slug, label })),
+    ];
+  }, [posts]);
 
   const featured = sorted.find((post) => post.featured) ?? sorted[0];
 
@@ -71,7 +79,7 @@ export default function BlogPage() {
           {featured ? <article className="feature-post">
             <Link to={`/blog/${featured.slug}`} aria-label={featured.title}>
               <div className="feature-media">
-                <img src={featured.image} alt={featured.title} width={1600} height={1000} />
+                <img loading="lazy" decoding="async" src={featured.image} alt={featured.title} width={1600} height={1000} />
               </div>
             </Link>
             <div>
@@ -101,7 +109,7 @@ export default function BlogPage() {
 
           <section className="filters" aria-label="Categorias do blog" style={{ paddingTop: 26 }}>
             <div className="chip-row">
-              {POST_CATEGORIES.map((item) => (
+              {categories.map((item) => (
                 <button
                   key={item.slug}
                   type="button"
@@ -132,7 +140,7 @@ export default function BlogPage() {
               {rest.map((post) => (
                 <Link className="post-card" key={post.slug} to={`/blog/${post.slug}`}>
                   <div className="post-card-media">
-                    <img src={post.image} alt={post.title} width={1600} height={1000} />
+                    <img loading="lazy" decoding="async" src={post.image} alt={post.title} width={1600} height={1000} />
                   </div>
                   <p className="post-meta">
                     <span className="post-cat">{post.category}</span>

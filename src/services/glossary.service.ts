@@ -23,5 +23,18 @@ export const glossaryService = {
 
     if (error) throw error
     return data as GlossaryTerm[]
+  },
+
+  /** Terms used in one article. */
+  async getByPostSlug(postSlug: string) {
+    const { data, error } = await getSupabaseClient()
+      .from('glossary')
+      .select('*')
+      .contains('postSlugs', [postSlug])
+      .not('slug', 'is', null)
+      .order('term')
+
+    if (error) throw error
+    return data as GlossaryTerm[]
   }
 }

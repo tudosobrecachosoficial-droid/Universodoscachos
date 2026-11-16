@@ -234,7 +234,7 @@ export default function AboutEditorialPage() {
               {TEAM.map((person) => (
                 <article className="about-person" key={person.name}>
                   <div className="about-person-media">
-                    <img src={person.image} alt={`Retrato de ${person.name}`} width={700} height={700} />
+                    <img loading="lazy" decoding="async" src={person.image} alt={`Retrato de ${person.name}`} width={700} height={700} />
                   </div>
                   <p className="about-person-role">{person.role}</p>
                   <h3>{person.name}</h3>

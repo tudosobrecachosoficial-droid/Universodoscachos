@@ -1,34 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-
-const STORAGE_KEY = "udc-cookie-choice";
-
-type Choice = "all" | "essential";
+import { CONSENT_OPEN_EVENT, getConsent, setConsent, type ConsentChoice } from "@/lib/consent";
 
 /**
- * Cookie notice shown once. The choice is remembered locally — the only
- * piece of visitor data this site stores in the browser by itself.
+ * Cookie notice. Analytics and advertising scripts only load after the visitor
+ * chooses "Aceitar"; the choice can be reopened from the footer at any time.
  */
 export default function CookieNotice() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved !== "all" && saved !== "essential") {
-        setVisible(true);
-      }
-    } catch {
-      setVisible(true);
-    }
+    if (!getConsent()) setVisible(true);
+    const reopen = () => setVisible(true);
+    window.addEventListener(CONSENT_OPEN_EVENT, reopen);
+    return () => window.removeEventListener(CONSENT_OPEN_EVENT, reopen);
   }, []);
 
-  const choose = (choice: Choice) => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, choice);
-    } catch {
-      // Storage blocked: the notice still closes for this visit.
-    }
+  const choose = (choice: ConsentChoice) => {
+    setConsent(choice);
     setVisible(false);
   };
 
@@ -37,9 +26,10 @@ export default function CookieNotice() {
   return (
     <aside className="cookie" role="region" aria-label="Aviso de cookies">
       <p className="cookie-copy">
-        <strong>Cookies, com transparência.</strong> Usamos apenas o essencial para o portal
-        funcionar e, se você autorizar, medições anônimas de leitura. Nada de perfil de navegação
-        vendido por aí. Saiba mais na{" "}
+        <strong>Cookies, com transparência.</strong> Usamos o essencial para o portal funcionar e,
+        só se você aceitar, cookies de medição e de publicidade, inclusive de parceiros como o
+        Google, para entender a leitura e exibir anúncios. Você pode mudar de ideia quando quiser,
+        pelo rodapé. Saiba mais na{" "}
         <Link to="/politica-de-privacidade#cookies">política de privacidade</Link>.
       </p>
       <div className="cookie-actions">

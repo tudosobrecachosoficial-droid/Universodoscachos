@@ -8,87 +8,54 @@ import SupabaseState from "@/components/feature/SupabaseState";
 import ProductCategoryPage from "@/pages/produtos/categoria/page";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useStructuredData } from "@/hooks/useStructuredData";
-import { buildProductNode } from "@/utils/offers";
+import { buildProductGraph } from "@/utils/structured";
+import { categoryMeta, productMeta } from "@/content/pageMeta";
+import { getSiteOrigin } from "@/utils/site";
 
-const formatDate = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+const formatDate = (iso?: string | null) => {
+  if (!iso) return null;
+  const date = new Date(`${iso.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+};
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
   const loadProduct = useCallback(() => productsService.getBySlug(slug ?? ""), [slug]);
-  const loadPosts = useCallback(() => postsService.getAll(), []);
+  const loadPosts = useCallback(() => postsService.getByProductSlug(slug ?? ""), [slug]);
   const loadCategory = useCallback(() => productsService.getCategoryBySlug(slug ?? ""), [slug]);
-  const productQuery = useSupabaseData(loadProduct);
-  const postsQuery = useSupabaseData(loadPosts);
-  const categoryQuery = useSupabaseData(loadCategory);
+  const productQuery = useSupabaseData(loadProduct, `product:${slug}`);
+  const postsQuery = useSupabaseData(loadPosts, `product-posts:${slug}`);
+  const categoryQuery = useSupabaseData(loadCategory, `category:${slug}`);
   const category = categoryQuery.data;
   const product = productQuery.data;
   const [active, setActive] = useState(0);
 
   const images = useMemo(
-    () => (product ? [product.image, ...product.gallery].filter(Boolean) : []),
+    () => (product ? [product.image, ...(product.gallery ?? [])].filter(Boolean) : []),
     [product],
   );
 
-  const relatedPosts = useMemo(
-    () =>
-      product
-        ? (postsQuery.data ?? [])
-            .filter((post) => (post.productSlugs ?? []).includes(product.slug))
-            .slice(0, 3)
-        : [],
-    [product, postsQuery.data],
-  );
+  const relatedPosts = product ? (postsQuery.data ?? []) : [];
 
+  const meta = product ? productMeta(product) : category ? categoryMeta(category) : null;
+  const settled = !productQuery.loading && !categoryQuery.loading && !productQuery.error && !categoryQuery.error;
   usePageMeta({
-    title: product
-      ? `${product.name} — ${product.brand} | Universo dos Cachos`
-      : category
-        ? `${category.label} para cabelos naturais | Universo dos Cachos`
-      : "Produto não encontrado | Universo dos Cachos",
-    description: product
-      ? product.summary
-      : category
-        ? category.intro || `Seleção de ${category.label.toLowerCase()} recomendados para cabelos ondulados, cacheados e crespos.`
-      : "Este produto não está mais no catálogo do Universo dos Cachos.",
-    path: product ? `/produtos/${product.slug}` : category ? `/produtos/${slug}` : "/produtos",
+    title: meta?.title ?? "Produto não encontrado | Universo dos Cachos",
+    description: meta?.description ?? "Este produto não está mais no catálogo do Universo dos Cachos.",
+    path: meta?.path ?? "/produtos",
+    image: product?.image || category?.image || undefined,
+    noindex: !meta && settled,
   });
 
   const hasPrice = Boolean(product?.promoPrice || product?.price);
 
-  /* Product + Offer + breadcrumb: the price and availability declared here are
-     the same ones printed on the page, so the markup never runs ahead of it. */
-  const structuredData = useMemo(() => {
-    if (!product) return null;
-    const origin = window.location.origin;
-    const pageUrl = `${origin}/produtos/${product.slug}`;
-
-    return {
-      "@context": "https://schema.org",
-      "@graph": [
-        buildProductNode(product, origin),
-        {
-          "@type": "BreadcrumbList",
-          "@id": `${pageUrl}#trilha`,
-          itemListElement: [
-            { "@type": "ListItem", position: 1, name: "Início", item: `${origin}/` },
-            { "@type": "ListItem", position: 2, name: "Produtos", item: `${origin}/produtos` },
-            {
-              "@type": "ListItem",
-              position: 3,
-              name: product.categoryLabel,
-              item: `${origin}/produtos/${product.categorySlug}`,
-            },
-            { "@type": "ListItem", position: 4, name: product.name, item: pageUrl },
-          ],
-        },
-      ],
-    };
-  }, [product]);
+  /* Product + breadcrumb. The Offer is only declared while the printed price is
+     recent, so the markup never runs ahead of what the page can vouch for. */
+  const structuredData = useMemo(
+    () => (product ? buildProductGraph(product, getSiteOrigin()) : null),
+    [product],
+  );
 
   useStructuredData("product-detail", structuredData);
 
@@ -125,6 +92,8 @@ export default function ProductDetailPage() {
     );
   }
 
+  const updatedLabel = formatDate(product.updatedAt);
+
   return (
     <div className="page">
       <SiteNav solid />
@@ -159,7 +128,7 @@ export default function ProductDetailPage() {
                     aria-label={`Ver imagem ${index + 1} de ${product.name}`}
                     onClick={() => setActive(index)}
                   >
-                    <img src={image} alt="" width={400} height={300} />
+                    <img loading="lazy" decoding="async" src={image} alt="" width={400} height={300} />
                   </button>
                 ))}
               </div>
@@ -177,12 +146,12 @@ export default function ProductDetailPage() {
                   <>
                     <span className="now">{product.promoPrice}</span>
                     <span className="was">{product.price}</span>
-                    <span className="ask">Preço informado em {formatDate(product.updatedAt)}</span>
+                    {updatedLabel ? <span className="ask">Preço informado em {updatedLabel}</span> : null}
                   </>
                 ) : product.price ? (
                   <>
                     <span className="now">{product.price}</span>
-                    <span className="ask">Preço informado em {formatDate(product.updatedAt)}</span>
+                    {updatedLabel ? <span className="ask">Preço informado em {updatedLabel}</span> : null}
                   </>
                 ) : (
                   <span className="ask">Consulte o preço na loja</span>
@@ -230,19 +199,21 @@ export default function ProductDetailPage() {
                       : "Conferir disponibilidade na loja parceira"}
                   </dd>
                 </div>
-                <div>
-                  <dt>Atualizado em</dt>
-                  <dd>{formatDate(product.updatedAt)}</dd>
-                </div>
+                {updatedLabel ? (
+                  <div>
+                    <dt>Atualizado em</dt>
+                    <dd>{updatedLabel}</dd>
+                  </div>
+                ) : null}
               </dl>
             </div>
           </div>
 
           <section className="pdetail-body prose-udc" style={{ paddingBottom: 48 }}>
-            {product.sections.map((section) => (
+            {(product.sections ?? []).map((section) => (
               <div key={section.heading}>
                 <h2>{section.heading}</h2>
-                {section.paragraphs.map((paragraph) => (
+                {(section.paragraphs ?? []).map((paragraph) => (
                   <p key={paragraph.slice(0, 40)}>{paragraph}</p>
                 ))}
               </div>
@@ -271,7 +242,7 @@ export default function ProductDetailPage() {
                 {relatedPosts.map((post) => (
                   <Link className="post-card" key={post.slug} to={`/blog/${post.slug}`}>
                     <div className="post-card-media">
-                      <img src={post.image} alt={post.title} width={1600} height={1000} />
+                      <img loading="lazy" decoding="async" src={post.image} alt={post.title} width={1600} height={1000} />
                     </div>
                     <p className="post-meta">
                       <span className="post-cat">{post.category}</span>

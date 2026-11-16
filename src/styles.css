@@ -5596,3 +5596,29 @@ a.chip {
         line-height: 1.75rem
     }
 }
+
+/* Advertising */
+.ad-slot {
+    margin: 32px 0;
+    padding: 12px 0;
+    text-align: center;
+    overflow: hidden
+}
+.ad-slot-label {
+    display: block;
+    margin-bottom: 8px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .6
+}
+.cookie-prefs {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer
+}

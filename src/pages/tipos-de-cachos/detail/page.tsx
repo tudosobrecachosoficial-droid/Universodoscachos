@@ -9,6 +9,7 @@ import { curlTypesService, productsService, postsService } from "@/services";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import SupabaseState from "@/components/feature/SupabaseState";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { curlMeta } from "@/content/pageMeta";
 import { useStructuredData } from "@/hooks/useStructuredData";
 import { buildCurlFaq } from "@/utils/curlFaq";
 import { buildProductList } from "@/utils/offers";
@@ -21,27 +22,27 @@ export default function CurlTypeDetailPage() {
   const loadCurls = useCallback(() => curlTypesService.getAll(), []);
   const loadProducts = useCallback(() => productsService.getAll(), []);
   const loadPosts = useCallback(() => postsService.getAll(), []);
-  const curlQuery = useSupabaseData(loadCurl);
-  const curlsQuery = useSupabaseData(loadCurls);
-  const productsQuery = useSupabaseData(loadProducts);
-  const postsQuery = useSupabaseData(loadPosts);
+  const curlQuery = useSupabaseData(loadCurl, `curl:${slug}`);
+  const curlsQuery = useSupabaseData(loadCurls, "curls:all");
+  const productsQuery = useSupabaseData(loadProducts, "products:all");
+  const postsQuery = useSupabaseData(loadPosts, "posts:all");
   const curl = curlQuery.data;
   const family = CURL_FAMILIES.find((item) => item.slug === curl?.familySlug);
   const curls = curlsQuery.data ?? [];
   const index = curls.findIndex((item) => item.slug === slug);
 
-  const metaTitle = curl
-    ? `${curl.name}: características, finalização e cuidados | Universo dos Cachos`
-    : "Curvatura não encontrada | Universo dos Cachos";
-  const metaDescription = curl
-    ? `${curl.tagline} Veja características, necessidades, finalização passo a passo, cuidados e produtos indicados para o cabelo ${curl.code}.`
-    : "Esta página de curvatura não está disponível no Universo dos Cachos.";
-  const canonicalPath = curl ? `/tipos-de-cachos/${curl.slug}` : "/tipos-de-cachos";
+  const meta = curl ? curlMeta(curl) : null;
+  const metaTitle = meta?.title ?? "Curvatura não encontrada | Universo dos Cachos";
+  const metaDescription =
+    meta?.description ?? "Esta página de curvatura não está disponível no Universo dos Cachos.";
+  const canonicalPath = meta?.path ?? "/tipos-de-cachos";
 
   usePageMeta({
     title: metaTitle,
     description: metaDescription,
     path: canonicalPath,
+    image: curl?.image,
+    noindex: !curl && !curlQuery.loading && !curlQuery.error,
   });
 
   const faq = useMemo(() => (curl ? buildCurlFaq(curl) : []), [curl]);
@@ -235,7 +236,7 @@ export default function CurlTypeDetailPage() {
               </div>
 
               <div className="curl-hero-media">
-                <img src={curl.image} alt={curl.imageAlt} width={900} height={1125} />
+                <img loading="lazy" decoding="async" src={curl.image} alt={curl.imageAlt} width={900} height={1125} />
               </div>
             </div>
           </div>
@@ -244,7 +245,7 @@ export default function CurlTypeDetailPage() {
         <div className="wrap">
           <div className="read-grid">
             <div className="prose-udc">
-              {curl.paragraphs.map((paragraph) => (
+              {(curl.paragraphs ?? []).map((paragraph) => (
                 <p className="prose-lead" key={paragraph.slice(0, 40)}>
                   {paragraph}
                 </p>
@@ -253,7 +254,7 @@ export default function CurlTypeDetailPage() {
               <section id="caracteristicas">
                 <h2>Características visuais</h2>
                 <ul>
-                  {curl.characteristics.map((item) => (
+                  {(curl.characteristics ?? []).map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
@@ -358,7 +359,7 @@ export default function CurlTypeDetailPage() {
                 {products.map((product) => (
                   <Link className="pcard" key={product.slug} to={`/produtos/${product.slug}`}>
                     <div className="pcard-media">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={product.image}
                         alt={`${product.name} da marca ${product.brand}`}
                         width={900}
@@ -425,7 +426,7 @@ export default function CurlTypeDetailPage() {
                 {relatedPosts.map((post) => (
                   <Link className="post-card" key={post.slug} to={`/blog/${post.slug}`}>
                     <div className="post-card-media">
-                      <img src={post.image} alt={post.title} width={1600} height={1000} />
+                      <img loading="lazy" decoding="async" src={post.image} alt={post.title} width={1600} height={1000} />
                     </div>
                     <p className="post-meta">
                       <span className="post-cat">{post.category}</span>

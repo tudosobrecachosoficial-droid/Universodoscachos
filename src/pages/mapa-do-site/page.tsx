@@ -29,11 +29,11 @@ export default function SiteIndexPage() {
   const loadPosts = useCallback(() => postsService.getAll(), []);
   const loadCurls = useCallback(() => curlTypesService.getAll(), []);
   const loadTerms = useCallback(() => glossaryService.getAll(), []);
-  const productsQuery = useSupabaseData(loadProducts);
-  const categoriesQuery = useSupabaseData(loadCategories);
-  const postsQuery = useSupabaseData(loadPosts);
-  const curlsQuery = useSupabaseData(loadCurls);
-  const termsQuery = useSupabaseData(loadTerms);
+  const productsQuery = useSupabaseData(loadProducts, "products:all");
+  const categoriesQuery = useSupabaseData(loadCategories, "categories:all");
+  const postsQuery = useSupabaseData(loadPosts, "posts:all");
+  const curlsQuery = useSupabaseData(loadCurls, "curls:all");
+  const termsQuery = useSupabaseData(loadTerms, "glossary:all");
   const products = productsQuery.data ?? [];
   const categories = (categoriesQuery.data ?? []).filter((item) => item.slug !== "todos");
   const posts = postsQuery.data ?? [];

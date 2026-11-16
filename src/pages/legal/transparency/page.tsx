@@ -5,7 +5,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: "Como o portal se sustenta",
     paragraphs: [
-      "O Universo dos Cachos é gratuito para quem lê. A manutenção do domínio, das imagens e das horas de escrita vem de duas fontes: links de afiliados e, eventualmente, conteúdos patrocinados claramente identificados.",
+      "O Universo dos Cachos é gratuito para quem lê. A manutenção do domínio, das imagens e das horas de escrita vem de duas fontes: links de afiliados, anúncios exibidos no blog e, eventualmente, conteúdos patrocinados claramente identificados.",
       "Não vendemos produtos, não intermediamos pedidos e não recebemos pagamento de marca para dizer que um produto funciona. Se um dia isso mudar, você vai ler esse aviso antes do texto.",
     ],
   },
@@ -42,6 +42,13 @@ const SECTIONS: LegalSection[] = [
       "Boa parte dos links leva à Shopee, com identificador de afiliado. A atribuição da comissão — incluindo o prazo em que o clique continua valendo — é definida pelas regras e pelos sistemas da própria plataforma.",
       "O Universo dos Cachos não controla essa janela, não altera a atribuição e não consegue convencer a loja a reconhecer uma compra. Se algo der errado no pedido, o atendimento é da loja.",
       "Outras lojas podem ser cadastradas no futuro. A estrutura do portal já está preparada para isso, e cada produto guarda sua própria loja e seu próprio link.",
+    ],
+  },
+  {
+    heading: "Anúncios no blog",
+    paragraphs: [
+      "Os artigos do blog podem exibir anúncios de uma rede de publicidade (o Google AdSense). Eles aparecem identificados como “Publicidade”, separados do texto, e só são carregados se você aceitar os cookies de publicidade.",
+      "Os anunciantes não escolhem o que escrevemos nem pagam por citação. O que um anúncio promete é responsabilidade de quem anuncia, e não uma recomendação do portal.",
     ],
   },
   {
@@ -101,7 +108,7 @@ export default function TransparencyPage() {
         </>
       }
       subtitle="Como o portal ganha dinheiro, o que a comissão muda no que escrevemos e o que continua fora do nosso controle."
-      updated="5 de novembro de 2026"
+      updated="15 de novembro de 2026"
       intro="Recomendar produto é uma responsabilidade. Esta página explica o caminho do clique até a comissão e deixa claro o que é escolha editorial e o que é regra da loja."
       sections={SECTIONS}
       callout="Transparência em uma linha: se você comprar por um link do portal, podemos receber comissão — o preço é o mesmo para você e a conclusão do texto não está à venda."

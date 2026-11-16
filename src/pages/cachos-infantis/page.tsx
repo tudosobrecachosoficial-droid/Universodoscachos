@@ -76,8 +76,8 @@ const SAFETY = [
 export default function KidsPage() {
   const loadProducts = useCallback(() => productsService.getAll(), []);
   const loadPosts = useCallback(() => postsService.getAll(), []);
-  const productsQuery = useSupabaseData(loadProducts);
-  const postsQuery = useSupabaseData(loadPosts);
+  const productsQuery = useSupabaseData(loadProducts, "products:all");
+  const postsQuery = useSupabaseData(loadPosts, "posts:all");
   const allProducts = productsQuery.data ?? [];
   const allPosts = postsQuery.data ?? [];
 
@@ -149,7 +149,7 @@ export default function KidsPage() {
             </div>
 
             <div className="kids-hero-media">
-              <img
+              <img loading="lazy" decoding="async"
                 src="https://readdy.ai/api/search-image?query=Close%20gentle%20photograph%20of%20a%20parent&width=1200&height=900&seq=udc-kids-hero-01&orientation=landscape's hands arranging the soft natural curls of a small child in warm morning light, warm plaster wall, tender calm mood, warm nude and copper palette, no faces visible, no text"
                 alt="Mãos de um adulto ajeitando os cachos naturais de uma criança"
                 width={1200}
@@ -238,7 +238,7 @@ export default function KidsPage() {
                 </p>
               </div>
               <div className="cat-hero-media">
-                <img
+                <img loading="lazy" decoding="async"
                   src="https://readdy.ai/api/search-image?query=Soft%20still%20life%20of%20a%20small%20child&width=900&height=675&seq=udc-kids-safety-02&orientation=landscape's hair care items on warm beige plaster, a pale cream bottle, a wide tooth comb and a folded muslin cloth, minimal warm palette, gentle daylight, no text no labels"
                   alt="Itens simples de cuidado infantil sobre uma superfície clara"
                   width={900}
@@ -279,7 +279,7 @@ export default function KidsPage() {
                 {kidsProducts.map((product) => (
                   <Link className="pcard" key={product.slug} to={`/produtos/${product.slug}`}>
                     <div className="pcard-media">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={product.image}
                         alt={`${product.name} da marca ${product.brand}`}
                         width={900}
@@ -345,7 +345,7 @@ export default function KidsPage() {
                 {kidsPosts.map((post) => (
                   <Link className="post-card" key={post.slug} to={`/blog/${post.slug}`}>
                     <div className="post-card-media">
-                      <img src={post.image} alt={post.title} width={1600} height={1000} />
+                      <img loading="lazy" decoding="async" src={post.image} alt={post.title} width={1600} height={1000} />
                     </div>
                     <p className="post-meta">
                       <span className="post-cat">{post.category}</span>

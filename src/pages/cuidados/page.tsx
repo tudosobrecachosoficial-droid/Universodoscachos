@@ -15,10 +15,10 @@ export default function CarePage() {
   const loadCurls = useCallback(() => curlTypesService.getAll(), []);
   const loadProducts = useCallback(() => productsService.getAll(), []);
   const loadPosts = useCallback(() => postsService.getAll(), []);
-  const careQuery = useSupabaseData(loadCare);
-  const curlQuery = useSupabaseData(loadCurls);
-  const productsQuery = useSupabaseData(loadProducts);
-  const postsQuery = useSupabaseData(loadPosts);
+  const careQuery = useSupabaseData(loadCare, "care:all");
+  const curlQuery = useSupabaseData(loadCurls, "curls:all");
+  const productsQuery = useSupabaseData(loadProducts, "products:all");
+  const postsQuery = useSupabaseData(loadPosts, "posts:all");
   const carePillars = careQuery.data ?? [];
   const curlTypes = curlQuery.data ?? [];
   const allProducts = productsQuery.data ?? [];
@@ -90,7 +90,7 @@ export default function CarePage() {
               </div>
 
               <div className="curl-hero-media">
-                <img
+                <img loading="lazy" decoding="async"
                   src="https://readdy.ai/api/search-image?query=Editorial%20close-up%20of%20hands%20applying%20conditioner%20to%20wet%20curly%20dark%20hair%20in%20a%20warm%20plaster%20bathroom%2C%20soft%20diffused%20daylight%2C%20warm%20nude%20and%20copper%20tones%2C%20calm%20intimate%20beauty%20photography%2C%20shallow%20depth%20of%20field%2C%20no%20text%20no%20logos&width=900&height=1125&seq=udc-care-hero-2026&orientation=portrait"
                   alt="Mãos aplicando condicionador em cabelo cacheado molhado, em um banheiro de tons quentes."
                   width={900}
@@ -226,7 +226,7 @@ export default function CarePage() {
               {products.map((product) => (
                 <Link className="pcard" key={product.slug} to={`/produtos/${product.slug}`}>
                   <div className="pcard-media">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={product.image}
                       alt={`${product.name} da marca ${product.brand}`}
                       width={900}
@@ -284,7 +284,7 @@ export default function CarePage() {
                 {posts.map((post) => (
                   <Link className="post-card" key={post.slug} to={`/blog/${post.slug}`}>
                     <div className="post-card-media">
-                      <img src={post.image} alt={post.title} width={1600} height={1000} />
+                      <img loading="lazy" decoding="async" src={post.image} alt={post.title} width={1600} height={1000} />
                     </div>
                     <p className="post-meta">
                       <span className="post-cat">{post.category}</span>

@@ -1,14 +1,21 @@
-import { useCallback, useMemo } from "react";
+import { Fragment, useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import SiteNav from "@/components/feature/SiteNav";
 import SiteFooter from "@/components/feature/SiteFooter";
 import NewsletterBlock from "@/components/feature/NewsletterBlock";
+import AdSlot from "@/components/feature/AdSlot";
 import { postsService, productsService, glossaryService } from "@/services";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import SupabaseState from "@/components/feature/SupabaseState";
 import { formatLongDate } from "@/utils/date";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useStructuredData } from "@/hooks/useStructuredData";
+import { postMeta } from "@/content/pageMeta";
+import { buildArticleGraph } from "@/utils/structured";
+import { getSiteOrigin } from "@/utils/site";
+
+const AD_SLOT_MID = import.meta.env.VITE_ADSENSE_SLOT_ARTICLE_MID as string | undefined;
+const AD_SLOT_END = import.meta.env.VITE_ADSENSE_SLOT_ARTICLE_END as string | undefined;
 
 const slugifyHeading = (text: string) =>
   text
@@ -21,106 +28,50 @@ const slugifyHeading = (text: string) =>
 export default function ArticlePage() {
   const { slug } = useParams();
   const loadPost = useCallback(() => postsService.getBySlug(slug ?? ""), [slug]);
-  const loadPosts = useCallback(() => postsService.getAll(), []);
-  const loadProducts = useCallback(() => productsService.getAll(), []);
-  const loadTerms = useCallback(() => glossaryService.getAll(), []);
-  const postQuery = useSupabaseData(loadPost);
-  const postsQuery = useSupabaseData(loadPosts);
-  const productsQuery = useSupabaseData(loadProducts);
-  const termsQuery = useSupabaseData(loadTerms);
+  const postQuery = useSupabaseData(loadPost, `post:${slug}`);
   const post = postQuery.data;
 
-  const related = useMemo(() => {
-    if (!post) return [];
-    const allPosts = postsQuery.data ?? [];
-    const sameCategory = allPosts.filter(
-      (item) => item.slug !== post.slug && item.categorySlug === post.categorySlug,
-    );
-    const others = allPosts.filter(
-      (item) => item.slug !== post.slug && item.categorySlug !== post.categorySlug,
-    );
-    return [...sameCategory, ...others].slice(0, 3);
-  }, [post, postsQuery.data]);
-
-  const products = useMemo(
-    () =>
-      post
-        ? (productsQuery.data ?? []).filter((item) => (post.productSlugs ?? []).includes(item.slug))
-        : [],
-    [post, productsQuery.data],
+  /* Everything below depends on the article, so each query asks the database
+     only for what this article needs instead of loading whole tables. */
+  const loadRelated = useCallback(
+    async () => (post ? postsService.getRelated(post.slug, post.categorySlug) : []),
+    [post],
   );
-
-  /* Terms from the glossary that are used in this article, so the reading
-     can continue from the word to the explanation. */
-  const terms = useMemo(
-    () =>
-      post
-        ? (termsQuery.data ?? []).filter((item) => (item.postSlugs ?? []).includes(post.slug))
-        : [],
-    [post, termsQuery.data],
+  const loadProducts = useCallback(
+    async () => (post ? productsService.getBySlugs(post.productSlugs ?? []) : []),
+    [post],
   );
+  const loadTerms = useCallback(
+    async () => (post ? glossaryService.getByPostSlug(post.slug) : []),
+    [post],
+  );
+  const relatedQuery = useSupabaseData(loadRelated, post ? `related:${post.slug}` : undefined);
+  const productsQuery = useSupabaseData(loadProducts, post ? `post-products:${post.slug}` : undefined);
+  const termsQuery = useSupabaseData(loadTerms, post ? `post-terms:${post.slug}` : undefined);
 
+  const related = relatedQuery.data ?? [];
+  const terms = termsQuery.data ?? [];
+
+  const products = useMemo(() => {
+    const order = post?.productSlugs ?? [];
+    return [...(productsQuery.data ?? [])].sort((a, b) => order.indexOf(a.slug) - order.indexOf(b.slug));
+  }, [post, productsQuery.data]);
+
+  const meta = post ? postMeta(post) : null;
   usePageMeta({
-    title: post
-      ? `${post.seoTitle} | Universo dos Cachos`
-      : "Artigo não encontrado | Universo dos Cachos",
-    description: post
-      ? post.seoDescription
-      : "Este artigo não está disponível no Universo dos Cachos.",
-    path: post ? `/blog/${post.slug}` : "/blog",
+    title: meta?.title ?? "Artigo não encontrado | Universo dos Cachos",
+    description: meta?.description ?? "Este artigo não está disponível no Universo dos Cachos.",
+    path: meta?.path ?? "/blog",
+    image: post?.image,
+    type: post ? "article" : "website",
+    noindex: !post && !postQuery.loading && !postQuery.error,
   });
 
-  /* Article + breadcrumb trail, so the reading path is explicit to search
-     engines: which section the text belongs to and where it sits on the site. */
-  const structuredData = useMemo(() => {
-    if (!post) return null;
-    const origin = window.location.origin;
-    const pageUrl = `${origin}/blog/${post.slug}`;
-    const siteUrl = `${origin}/`;
-    const publisher = {
-      "@type": "Organization",
-      name: "Universo dos Cachos",
-      url: siteUrl,
-    };
-
-    return {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "Article",
-          "@id": `${pageUrl}#artigo`,
-          headline: post.title,
-          description: post.excerpt,
-          image: [post.image],
-          inLanguage: "pt-BR",
-          ...(post.date
-            ? {
-                datePublished: post.date,
-                dateModified: post.date,
-              }
-            : {}),
-          articleSection: post.category,
-          keywords: (post.tags ?? []).join(", "),
-          mainEntityOfPage: { "@id": pageUrl },
-          author: {
-            "@type": "Organization",
-            name: post.author,
-            url: `${origin}/sobre-a-redacao`,
-          },
-          publisher,
-        },
-        {
-          "@type": "BreadcrumbList",
-          "@id": `${pageUrl}#trilha`,
-          itemListElement: [
-            { "@type": "ListItem", position: 1, name: "Início", item: siteUrl },
-            { "@type": "ListItem", position: 2, name: "Blog", item: `${origin}/blog` },
-            { "@type": "ListItem", position: 3, name: post.title, item: pageUrl },
-          ],
-        },
-      ],
-    };
-  }, [post]);
+  /* Article + breadcrumb trail, so the reading path is explicit to search engines. */
+  const structuredData = useMemo(
+    () => (post ? buildArticleGraph(post, getSiteOrigin()) : null),
+    [post],
+  );
 
   useStructuredData("blog-article", structuredData);
 
@@ -201,22 +152,27 @@ export default function ArticlePage() {
               <div className="prose-udc">
                 <p className="prose-lead">{post.excerpt}</p>
 
-                {(post.sections ?? []).map((section) => (
-                  <section key={section.heading} id={slugifyHeading(section.heading)}>
-                    <h2>{section.heading}</h2>
-                    {(section.paragraphs ?? []).map((paragraph) => (
-                      <p key={paragraph.slice(0, 40)}>{paragraph}</p>
-                    ))}
-                    {(section.list ?? []).length > 0 ? (
-                      <ul>
-                        {(section.list ?? []).map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    {section.quote ? <blockquote>{section.quote}</blockquote> : null}
-                  </section>
+                {(post.sections ?? []).map((section, index) => (
+                  <Fragment key={section.heading}>
+                    <section id={slugifyHeading(section.heading)}>
+                      <h2>{section.heading}</h2>
+                      {(section.paragraphs ?? []).map((paragraph) => (
+                        <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+                      ))}
+                      {(section.list ?? []).length > 0 ? (
+                        <ul>
+                          {(section.list ?? []).map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {section.quote ? <blockquote>{section.quote}</blockquote> : null}
+                    </section>
+                    {index === 1 ? <AdSlot key={`${post.slug}-mid`} slot={AD_SLOT_MID} /> : null}
+                  </Fragment>
                 ))}
+
+                <AdSlot key={`${post.slug}-end`} slot={AD_SLOT_END} />
 
                 <p className="buy-note" style={{ marginTop: 32 }}>
                   Conteúdo editorial em revisão antes da publicação. Este texto tem caráter
@@ -293,7 +249,7 @@ export default function ArticlePage() {
                 {products.map((product) => (
                   <Link className="pcard" key={product.slug} to={`/produtos/${product.slug}`}>
                     <div className="pcard-media">
-                      <img src={product.image} alt={product.name} width={900} height={900} />
+                      <img loading="lazy" decoding="async" src={product.image} alt={product.name} width={900} height={900} />
                       <span className="pcard-tag">{product.categoryLabel}</span>
                     </div>
                     <div className="pcard-body">
@@ -340,7 +296,7 @@ export default function ArticlePage() {
                 {related.map((item) => (
                   <Link className="post-card" key={item.slug} to={`/blog/${item.slug}`}>
                     <div className="post-card-media">
-                      <img src={item.image} alt={item.title} width={1600} height={1000} />
+                      <img loading="lazy" decoding="async" src={item.image} alt={item.title} width={1600} height={1000} />
                     </div>
                     <p className="post-meta">
                       <span className="post-cat">{item.category}</span>
