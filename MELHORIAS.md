@@ -2,7 +2,7 @@
 
 ## Antes de publicar (checklist)
 
-1. `npm install` (atualiza o `package-lock.json`: as dependências de i18n foram removidas).
+1. O `package-lock.json` já está sincronizado com o `package.json` (as dependências de i18n foram removidas dos dois).
 2. Preencher no Vercel: `VITE_SITE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (+ `VITE_GTM_ID`, e os `VITE_ADSENSE_*` quando o AdSense for aprovado).
 3. Rodar as migrations de `supabase/migrations/` (ver `SUPABASE_SETUP.md`).
 4. Trocar os links de afiliado dos produtos por links reais (o build avisa quais estão vazios ou só com a home da loja).
