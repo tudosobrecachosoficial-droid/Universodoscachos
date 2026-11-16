@@ -8,6 +8,8 @@ import { useSupabaseData } from "@/hooks/useSupabaseData";
 import SupabaseState from "@/components/feature/SupabaseState";
 import { formatShortDate } from "@/utils/date";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useStructuredData } from "@/hooks/useStructuredData";
+import { buildProductList } from "@/utils/offers";
 
 const CHANGES = [
   {
@@ -103,8 +105,54 @@ export default function KidsPage() {
     return priority.slice(0, 3);
   }, [allPosts]);
 
+  /* WebPage + ItemList of the shelf + BreadcrumbList: the section declares itself
+     as a page, the recommended products as a list with the same prices shown on
+     the cards, and its place in the site hierarchy for crawlers. */
+  const structuredData = useMemo(() => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const pageUrl = `${origin}/cachos-infantis`;
+    const description =
+      "Guia para pais e responsáveis sobre cabelos cacheados e crespos de crianças: lavagem, desembaraço sem quebra, finalização suave, rotina noturna e produtos indicados por idade.";
+
+    const shelf = buildProductList({
+      origin,
+      pageUrl,
+      products: kidsProducts,
+      name: "Produtos infantis recomendados",
+      description:
+        "Seleção de produtos indicados por faixa etária para cabelos cacheados e crespos de crianças.",
+    });
+
+    return {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "@id": `${pageUrl}#pagina`,
+          name: "Cachos infantis: cuidados, rotina e produtos para crianças",
+          description,
+          url: pageUrl,
+          inLanguage: "pt-BR",
+          isPartOf: { "@type": "WebSite", name: "Universo dos Cachos", url: `${origin}/` },
+          ...(shelf ? { mainEntity: { "@id": `${pageUrl}#produtos` } } : {}),
+        },
+        ...(shelf ? [shelf] : []),
+        {
+          "@type": "BreadcrumbList",
+          "@id": `${pageUrl}#trilha`,
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Início", item: `${origin}/` },
+            { "@type": "ListItem", position: 2, name: "Cachos infantis", item: pageUrl },
+          ],
+        },
+      ],
+    };
+  }, [kidsProducts]);
+
+  useStructuredData("kids-hair", structuredData);
+
   return (
-    <div className="page">
+    <div className="page kids-page">
       <SiteNav solid />
       <main>
         <div className="wrap">
@@ -122,8 +170,8 @@ export default function KidsPage() {
             <div>
               <nav className="crumbs" aria-label="Você está aqui">
                 <Link to="/">Início</Link>
-                <span>/</span>
-                <span>Cachos infantis</span>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">Cachos infantis</span>
               </nav>
               <p className="stamp">Cachos infantis · para pais e responsáveis</p>
               <h1>
@@ -150,7 +198,7 @@ export default function KidsPage() {
 
             <div className="kids-hero-media">
               <img loading="lazy" decoding="async"
-                src="https://readdy.ai/api/search-image?query=Close%20gentle%20photograph%20of%20a%20parent&width=1200&height=900&seq=udc-kids-hero-01&orientation=landscape's hands arranging the soft natural curls of a small child in warm morning light, warm plaster wall, tender calm mood, warm nude and copper palette, no faces visible, no text"
+                src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=A%20parent%27s%20hands%20gently%20arranging%20the%20soft%20natural%20curls%20of%20a%20small%20child%2C%20warm%20morning%20light%2C%20warm%20plaster%20wall%2C%20tender%20calm%20mood%2C%20warm%20nude%20and%20copper%20palette%2C%20no%20faces%20visible%2C%20no%20text&image_size=landscape_4_3"
                 alt="Mãos de um adulto ajeitando os cachos naturais de uma criança"
                 width={1200}
                 height={900}
@@ -190,7 +238,7 @@ export default function KidsPage() {
                 <i className="ri-arrow-right-line" aria-hidden="true" />
               </Link>
             </div>
-            <p className="page-sub" style={{ marginTop: 0, marginBottom: 22 }}>
+            <p className="page-sub section-lead">
               Uma sequência que caiba no banho de cinco minutos. Cada passo pode ser curto — o que
               importa é a ordem e a mão leve.
             </p>
@@ -211,14 +259,7 @@ export default function KidsPage() {
             <div className="cat-hero">
               <div>
                 <p className="stamp">Segurança primeiro</p>
-                <h2
-                  style={{
-                    margin: "14px 0 12px",
-                    fontSize: "clamp(22px, 2.6vw, 34px)",
-                    letterSpacing: "-.03em",
-                    lineHeight: 1.1,
-                  }}
-                >
+                <h2>
                   O que não entra na rotina
                   <br />
                   de uma <em className="accent">criança</em>.
@@ -239,7 +280,7 @@ export default function KidsPage() {
               </div>
               <div className="cat-hero-media">
                 <img loading="lazy" decoding="async"
-                  src="https://readdy.ai/api/search-image?query=Soft%20still%20life%20of%20a%20small%20child&width=900&height=675&seq=udc-kids-safety-02&orientation=landscape's hair care items on warm beige plaster, a pale cream bottle, a wide tooth comb and a folded muslin cloth, minimal warm palette, gentle daylight, no text no labels"
+                  src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Minimal%20still%20life%20of%20children%27s%20hair%20care%20items%20on%20warm%20beige%20plaster%3A%20a%20pale%20cream%20bottle%2C%20a%20wide-tooth%20comb%20and%20a%20folded%20muslin%20cloth%2C%20soft%20daylight%2C%20warm%20palette%2C%20no%20text%20no%20labels&image_size=landscape_4_3"
                   alt="Itens simples de cuidado infantil sobre uma superfície clara"
                   width={900}
                   height={675}
@@ -281,7 +322,7 @@ export default function KidsPage() {
                     <div className="pcard-media">
                       <img loading="lazy" decoding="async"
                         src={product.image}
-                        alt={`${product.name} da marca ${product.brand}`}
+                        alt={product.brand ? `${product.name} da marca ${product.brand}` : product.name}
                         width={900}
                         height={900}
                       />
@@ -317,13 +358,13 @@ export default function KidsPage() {
               <strong>Transparência:</strong> os links levam a lojas parceiras e podemos receber
               comissão pela compra, sem custo adicional para você. O Universo dos Cachos não vende os
               produtos e não substitui a indicação do fabricante nem a orientação de um profissional.
-              <Link to="/transparencia" style={{ color: "inherit", textDecoration: "underline" }}>
+              <Link to="/transparencia">
                 {" "}
                 Como funcionam os afiliados.
               </Link>
             </p>
 
-            <div style={{ paddingTop: 26 }}>
+            <div className="kids-chips">
               <CategoryChips active="infantil" />
             </div>
           </div>
@@ -367,7 +408,7 @@ export default function KidsPage() {
           </section>
         ) : null}
 
-        <div style={{ height: 56 }} />
+        <div className="page-tail" />
       </main>
       <SiteFooter />
     </div>

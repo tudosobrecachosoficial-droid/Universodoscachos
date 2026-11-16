@@ -4249,6 +4249,11 @@ h2 .accent,
     font-weight: 600
 }
 
+.disclosure a {
+    color: inherit;
+    text-decoration: underline
+}
+
 .pdetail {
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     align-items: start;
@@ -4790,6 +4795,10 @@ h2 .accent,
     transform: translate(3px)
 }
 
+.section-lead {
+    margin: 0 0 22px
+}
+
 .news {
     background: color-mix(in srgb, var(--bg-deep) 72%, var(--bg));
     border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
@@ -5096,6 +5105,14 @@ a.chip {
     display: flex
 }
 
+.cat-hero h2 {
+    letter-spacing: -.03em;
+    margin: 14px 0 12px;
+    font-size: clamp(22px, 2.6vw, 34px);
+    font-weight: 600;
+    line-height: 1.1
+}
+
 .kids-hero {
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     align-items: center;
@@ -5228,6 +5245,25 @@ a.chip {
 .shelf-kids {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     max-width: 700px
+}
+
+.kids-chips {
+    padding-top: 26px
+}
+
+.page-tail {
+    height: 56px
+}
+
+/* Keyboard focus stays visible on every interactive element of the section,
+   and anchored sections clear the fixed navigation when jumped to. */
+.kids-page :where(a, button):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px
+}
+
+.kids-page .section-block[id] {
+    scroll-margin-top: 104px
 }
 
 @media (width<=900px) {

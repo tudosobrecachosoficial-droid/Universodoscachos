@@ -22,9 +22,11 @@ export default function ProductsPage() {
   const loadProducts = useCallback(() => productsService.getAll(), []);
   const { data: products, error, loading, reload } = useSupabaseData(loadProducts, "products:all");
   const productList = products ?? [];
-  const brands = Array.from(new Set(productList.map((product) => product.brand))).sort((a, b) =>
-    a.localeCompare(b),
-  );
+  const brands = Array.from(
+    new Set(
+      productList.map((product) => product.brand).filter((value): value is string => Boolean(value)),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
 
   usePageMeta({
     title: "Produtos recomendados para cachos | Universo dos Cachos",
@@ -112,8 +114,8 @@ export default function ProductsPage() {
       const matchTerm =
         !term ||
         product.name.toLowerCase().includes(term) ||
-        product.brand.toLowerCase().includes(term) ||
-        product.need.toLowerCase().includes(term);
+        (product.brand ?? "").toLowerCase().includes(term) ||
+        (product.need ?? "").toLowerCase().includes(term);
       return matchCurl && matchBrand && matchTerm;
     });
 
@@ -121,7 +123,7 @@ export default function ProductsPage() {
       return [...list].sort((a, b) => a.name.localeCompare(b.name));
     }
     if (sort === "recentes") {
-      return [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      return [...list].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
     }
     return [...list].sort((a, b) => Number(b.featured) - Number(a.featured));
   }, [curl, brand, sort, query, productList]);
